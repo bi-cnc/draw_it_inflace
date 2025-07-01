@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
@@ -10,7 +10,7 @@
       background: #f9fafb;
       color: #222;
       margin: 40px auto;
-      max-width: 960px;
+      max-width: 620px;
       padding: 0 20px;
     }
     h2 {
@@ -74,7 +74,7 @@
 <body>
 <h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
 <p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
-<svg id="chart" height="450"></svg>
+<svg id="chart" height="550"></svg>
 
 <div class="btn-container">
   <button onclick="resetDrawing()">Zkusit znovu</button>
@@ -195,9 +195,9 @@ dataReal.forEach(d => d.date = parseDate(d.Datum));
 const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
 const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
-const margin = {top: 30, right: 30, bottom: 50, left: 50},
-      width = 900 - margin.left - margin.right,
-      height = 400 - margin.top - margin.bottom;
+const margin = {top: 50, right: 40, bottom: 50, left: 50},
+      width = 560 - margin.left - margin.right,
+      height = 520 - margin.top - margin.bottom;
 
 const svg = d3.select("#chart")
   .append("g")
@@ -280,8 +280,8 @@ svg.append("rect")
 
 // Babišova vláda – větší, tučné, s rozestupem
 svg.append("text")
-  .attr("x", x(parseDate("2019-01")))
-  .attr("y", 30)
+  .attr("x", x(parseDate("2018-08")))
+  .attr("y", -10)
   .text("BABIŠOVA VLÁDA")
   .attr("class", "label")
   .style("fill", "#282660")
@@ -291,8 +291,8 @@ svg.append("text")
 
 // Fialova vláda – větší, tučné, s rozestupem
 svg.append("text")
-  .attr("x", x(parseDate("2023-01")))
-  .attr("y", 30)
+  .attr("x", x(parseDate("2022-06")))
+  .attr("y", -10)
   .text("FIALOVA VLÁDA")
   .attr("class", "label")
   .style("fill", "#1e88e5")
