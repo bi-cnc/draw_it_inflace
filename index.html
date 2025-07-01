@@ -423,28 +423,29 @@ function drawChart() {
   // --- INTERACTION LOGIC (Mouse & Touch) ---
 
   // Funkce pro start interakce (mousedown / touchstart)
-  function handleInteractionStart(event, element) {
-    if (evaluated) return;
-    // Ignorujeme pravé tlačítko myši nebo multi-touch
-    if (event.button === 2 || (event.touches && event.touches.length > 1)) return;
+function handleInteractionStart(event, element) {
+  if (evaluated) return;
+  if (event.button === 2 || (event.touches && event.touches.length > 1)) return;
 
-    isDrawing = true;
-    hasDrawn = false;
-    userPoints = [];
-    userPath.attr("d", null);
-    svgGroup.selectAll("circle.user-dot").remove();
-    svgGroup.selectAll("text").filter(function () {
-      return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
-    }).remove();
-    usedLabelPositions = []; // Reset usedLabelPositions for new drawing
+  isDrawing = true;
+  hasDrawn = false;
+  userPoints = [];
+  userPath.attr("d", null);
+  svgGroup.selectAll("circle.user-dot").remove();
+  svgGroup.selectAll("text").filter(function () {
+    return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+  }).remove();
+  usedLabelPositions = [];
 
-    const start = x(parseDate("2021-12"));
-    const end = x(parseDate("2025-05"));
-    yellowOverlay
-      .style("display", "block")
-      .attr("x", start)
-      .attr("width", end - start);
-  }
+  document.body.style.overflow = "hidden"; // ✅ Zabrání scrollu během kreslení
+
+  const start = x(parseDate("2021-12"));
+  const end = x(parseDate("2025-05"));
+  yellowOverlay
+    .style("display", "block")
+    .attr("x", start)
+    .attr("width", end - start);
+}
 
   // Funkce pro pohyb interakce (mousemove / touchmove)
   function handleInteractionMove(event, element) {
