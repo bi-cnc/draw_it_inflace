@@ -31,6 +31,7 @@
       width: 100%;
       height: auto;
       display: block;
+      max-width: 100%;
     }
 
     .true-line {
@@ -106,9 +107,11 @@
   </style>
 </head>
 <body>
+
 <h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
 <p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
-<svg id="chart" height="550"></svg>
+
+<svg id="chart" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
 
 <div class="btn-container">
   <button onclick="resetDrawing()">Zkusit znovu</button>
@@ -229,9 +232,10 @@ dataReal.forEach(d => d.date = parseDate(d.Datum));
 const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
 const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
-const margin = {top: 50, right: 40, bottom: 50, left: 50},
-      width = 560 - margin.left - margin.right,
-      height = 520 - margin.top - margin.bottom;
+const containerWidth = document.getElementById("chart").getBoundingClientRect().width;
+const margin = { top: 50, right: 40, bottom: 50, left: 50 };
+const width = containerWidth - margin.left - margin.right;
+const height = (containerWidth * 0.75) - margin.top - margin.bottom;
 
 const svg = d3.select("#chart")
   .append("g")
