@@ -228,31 +228,37 @@ dataReal.forEach(d => d.date = parseDate(d.Datum));
 const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
 const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
-// Vykreslovací funkce pro celý graf, aby se dala volat při změně velikosti okna
 function drawChart() {
-  // Vyčistíme SVG před opětovným vykreslením
   d3.select("#chart").selectAll("*").remove();
 
   const containerWidth = document.getElementById("chart").getBoundingClientRect().width;
-  // Upravené okraje pro lepší využití prostoru, zejména na mobilu
-  const margin = { top: 60, right: 40, bottom: 60, left: 50 }; // Zvýšený horní a dolní okraj pro nadpisy a osy
+
+  // ⭐ Upravené marginy pro lepší vyplnění šířky na mobilu
+  let margin;
+  if (window.innerWidth < 500) {
+    margin = { top: 60, right: 10, bottom: 60, left: 10 }; // Ještě menší okraje na mobilu
+  } else {
+    margin = { top: 60, right: 40, bottom: 60, left: 50 };
+  }
+
   const width = containerWidth - margin.left - margin.right;
   let heightRatio = window.innerWidth < 500 ? 1.3 : 0.75;
   const height = (containerWidth * heightRatio) - margin.top - margin.bottom;
 
-  const svg = d3.select("#chart")
+  // Vytvoříme G element uvnitř SVG pro celý graf, který bude posunut marginem
+  const svgGroup = d3.select("#chart")
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   // Dynamický rozsah osy X, začínáme dříve než první data, pro lepší zarovnání osy
   const minDate = d3.min(dataReal, d => d.date);
   const maxDate = d3.max(dataReal, d => d.date);
-  const x = d3.scaleTime().domain([d3.timeMonth.offset(minDate, -1), d3.timeMonth.offset(maxDate, 1)]).range([0, width]); // Rozšířený rozsah
+  const x = d3.scaleTime().domain([d3.timeMonth.offset(minDate, -1), d3.timeMonth.offset(maxDate, 1)]).range([0, width]);
   const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
 
   let isDrawing = false, hasDrawn = false, evaluated = false;
   let userPoints = [], usedLabelPositions = [];
-  let userPath = svg.append("path").attr("class", "user-line");
+  let userPath = svgGroup.append("path").attr("class", "user-line"); // Kreslíme do svgGroup
   let fialaLine;
 
   function drawLabelWithDot(xPos, yPos, color, text, align = "start", bold = false, blackText = false, xOffset = 0, isUser = false) {
@@ -264,7 +270,7 @@ function drawChart() {
     }
     usedLabelPositions.push(adjustedY);
 
-    const circle = svg.append("circle")
+    const circle = svgGroup.append("circle") // Kreslíme do svgGroup
       .attr("cx", xPos)
       .attr("cy", adjustedY)
       .attr("r", window.innerWidth < 500 ? 4 : 5)
@@ -272,7 +278,7 @@ function drawChart() {
 
     if (isUser) circle.classed("user-dot", true);
 
-    svg.append("text")
+    svgGroup.append("text") // Kreslíme do svgGroup
       .attr("x", xPos + xOffset + (align === "start" ? 8 : align === "middle" ? 0 : -8))
       .attr("y", adjustedY - (window.innerWidth < 500 ? 8 : 10))
       .attr("text-anchor", align)
@@ -283,16 +289,15 @@ function drawChart() {
   }
 
   // Osy
-  svg.append("g")
+  svgGroup.append("g") // Kreslíme do svgGroup
     .attr("transform", `translate(0,${height})`)
     .call(d3.axisBottom(x)
           .tickFormat(d3.timeFormat("%Y"))
-          .ticks(window.innerWidth < 500 ? d3.timeYear.every(2) : d3.timeYear.every(1)) // Mění interval ticků pro mobil
+          .ticks(window.innerWidth < 500 ? d3.timeYear.every(2) : d3.timeYear.every(1))
     )
     .selectAll("text")
     .style("text-anchor", "middle")
     .style("font-size", window.innerWidth < 500 ? "10px" : "14px")
-    // Posunout popisky let na ose X trochu níže, aby se nepřekrývaly s dolním okrajem grafu
     .attr("dy", "1em");
 
 
@@ -302,15 +307,15 @@ function drawChart() {
     .y1(d => y(d.Inflace))
     .curve(d3.curveMonotoneX);
 
-  // Pozadí vlád
-  svg.append("rect")
+  // Pozadí vlád (měníme, kam appendujeme)
+  svgGroup.append("rect")
     .attr("x", x(parseDate("2017-12")))
     .attr("width", x(parseDate("2021-12")) - x(parseDate("2017-12")))
     .attr("height", height)
     .attr("fill", "#e53935")
     .attr("opacity", 0.05);
 
-  const yellowOverlay = svg.append("rect")
+  const yellowOverlay = svgGroup.append("rect") // Kreslíme do svgGroup
     .attr("id", "completion-highlight")
     .attr("y", 0)
     .attr("height", height)
@@ -318,19 +323,19 @@ function drawChart() {
     .attr("opacity", 0.6)
     .style("display", "none");
 
-  svg.append("rect")
+  svgGroup.append("rect") // Kreslíme do svgGroup
     .attr("x", x(parseDate("2021-12")))
     .attr("width", x(parseDate("2025-05")) - x(parseDate("2021-12")))
     .attr("height", height)
     .attr("fill", "#1e88e5")
     .attr("opacity", 0.05);
 
-  // Nadpisy vlád - dynamické pozice
-  const babisMidX = x(parseDate("2019-06")); // Střed Babišovy vlády
-  const fialaMidX = x(parseDate("2023-06")); // Střed Fialovy vlády
-  const titleY = -margin.top / 2 + 10; // Dynamicky umístěné výše, ale ne moc
+  // Nadpisy vlád
+  const babisMidX = x(parseDate("2019-06"));
+  const fialaMidX = x(parseDate("2023-06"));
+  const titleY = -margin.top / 2 + 10;
 
-  svg.append("text")
+  svgGroup.append("text") // Kreslíme do svgGroup
     .attr("x", babisMidX)
     .attr("y", titleY)
     .text("BABIŠOVA VLÁDA")
@@ -339,9 +344,9 @@ function drawChart() {
     .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
     .style("font-weight", "bold")
     .style("letter-spacing", "1px")
-    .attr("text-anchor", "middle"); // Centrovat text
+    .attr("text-anchor", "middle");
 
-  svg.append("text")
+  svgGroup.append("text") // Kreslíme do svgGroup
     .attr("x", fialaMidX)
     .attr("y", titleY)
     .text("FIALOVA VLÁDA")
@@ -350,9 +355,9 @@ function drawChart() {
     .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
     .style("font-weight", "bold")
     .style("letter-spacing", "1px")
-    .attr("text-anchor", "middle"); // Centrovat text
+    .attr("text-anchor", "middle");
 
-  svg.append("g")
+  svgGroup.append("g") // Kreslíme do svgGroup
     .attr("class", "y-grid")
     .call(
       d3.axisLeft(y)
@@ -363,11 +368,11 @@ function drawChart() {
     .attr("stroke", "#ddd")
     .attr("stroke-dasharray", "2,2");
 
-  svg.selectAll(".y-grid path").remove();
+  svgGroup.selectAll(".y-grid path").remove();
 
   // Babišova čára
   const line = d3.line().x(d => x(d.date)).y(d => y(d.Inflace)).curve(d3.curveMonotoneX);
-  svg.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
+  svgGroup.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line); // Kreslíme do svgGroup
 
   // Označení začátku a konce Babišovy vlády inflací
   const startBabis = dataBabis[0];
@@ -378,10 +383,10 @@ function drawChart() {
     y(startBabis.Inflace),
     "#000",
     `${startBabis.Inflace.toFixed(1)} %`,
-    "end", // Změna: end, aby byl text vlevo od tečky
+    "end",
     true,
     true,
-    -8 // Menší offset
+    window.innerWidth < 500 ? -4 : -8
   );
 
   drawLabelWithDot(
@@ -389,48 +394,43 @@ function drawChart() {
     y(endBabis.Inflace),
     "#000",
     `${endBabis.Inflace.toFixed(1)} %`,
-    "start", // Změna: start, aby byl text vpravo od tečky
+    "start",
     true,
     true,
-    8 // Menší offset
+    window.innerWidth < 500 ? 4 : 8
   );
 
+  // ⭐ NOVÝ PRŮHLEDNÝ RECTANGLE PRO KRESLENÍ - TEĎ JE VŽDY NA CELÉ KRESLÍCÍ PLOŠE
+  const drawingArea = svgGroup.append("rect") // Kreslíme do svgGroup
+    .attr("class", "drawing-overlay") // Přidáme třídu pro snadnější selekci
+    .attr("x", x(parseDate("2021-12"))) // Začíná od prosince 2021
+    .attr("y", 0) // Odshora grafu
+    .attr("width", x(parseDate("2025-05")) - x(parseDate("2021-12"))) // Šířka kreslící plochy
+    .attr("height", height) // Celá výška grafu
+    .attr("fill", "transparent")
+    .style("cursor", "crosshair");
 
-  // Kreslení interakce
-  // Přesuneme listener na svg element a odstraníme z průhledného obdélníku.
-  // To zajistí, že klikáme/táhneme na celé SVG.
-  d3.select("#chart") // Použijeme ID celého SVG
+
+  // ⭐ ZMĚNA: Listenery pro myš a dotyk jsou teď na 'drawingArea' (průhledný obdélník)
+  // To zajistí, že události se zachytávají pouze v oblasti, kde má uživatel kreslit.
+  drawingArea
     .on("mousedown", (event) => {
-      // Pokud se klikne mimo kreslicí oblast (např. na okraj)
-      const [px, py] = d3.pointer(event);
-      const xDate = x.invert(px - margin.left); // Započítáme margin
-      const yVal = y.invert(py - margin.top); // Započítáme margin
-
-      if (
-        xDate < parseDate("2021-12") ||
-        xDate > parseDate("2025-05") ||
-        yVal < 0 ||
-        yVal > 25
-      ) {
-        return; // Ignorovat mousedown mimo povolený rozsah kreslení
-      }
-
       if (evaluated) return;
-      if (event.button === 2) return; // Ignorovat pravé tlačítko myši
+      if (event.button === 2) return;
 
       isDrawing = true;
       hasDrawn = false;
       userPoints = [];
       userPath.attr("d", null);
-      svg.selectAll("circle.user-dot").remove();
-      svg.selectAll("text").filter(function () {
+      svgGroup.selectAll("circle.user-dot").remove();
+      svgGroup.selectAll("text").filter(function () {
         return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
       }).remove();
-      usedLabelPositions = []; // Reset usedLabelPositions on new drawing
+      usedLabelPositions = [];
 
       const start = x(parseDate("2021-12"));
       const end = x(parseDate("2025-05"));
-      d3.select("#completion-highlight")
+      yellowOverlay
         .style("display", "block")
         .attr("x", start)
         .attr("width", end - start);
@@ -448,17 +448,17 @@ function drawChart() {
 
       if (lastPoint && lastX >= endX - 5) {
         document.getElementById("evaluate").disabled = false;
-        d3.select("#completion-highlight").style("display", "none");
+        yellowOverlay.style("display", "none");
       } else {
         document.getElementById("evaluate").disabled = true;
-        d3.select("#completion-highlight").style("display", "block");
+        yellowOverlay.style("display", "block");
       }
     })
 
     .on("mousemove", function (event) {
       if (!isDrawing || evaluated) return;
 
-      const [px, py] = d3.pointer(event, svg.node()); // Získáme souřadnice vzhledem k SVG
+      const [px, py] = d3.pointer(event, this); // ⭐ Zde je klíčová změna: 'this' odkazuje na 'drawingArea'
       const xDate = x.invert(px);
       const yVal = y.invert(py);
 
@@ -483,10 +483,10 @@ function drawChart() {
         const endX = x(endDate);
 
         if (lastX >= endX - 5) {
-          d3.select("#completion-highlight").style("display", "none");
+          yellowOverlay.style("display", "none");
           document.getElementById("evaluate").disabled = false;
         } else {
-          d3.select("#completion-highlight")
+          yellowOverlay
             .style("display", "block")
             .attr("x", lastX)
             .attr("width", endX - lastX);
@@ -503,7 +503,7 @@ function drawChart() {
       const endX = x(endDate);
 
       if (lastPoint && lastX >= endX - 5) {
-        d3.select("#completion-highlight").style("display", "none");
+        yellowOverlay.style("display", "none");
         document.getElementById("evaluate").disabled = false;
       }
     });
@@ -513,20 +513,18 @@ function drawChart() {
     evaluated = true;
     document.getElementById("evaluate").disabled = true;
 
-      // Fialova čára – s animací
-      fialaLine = svg.append("path")
+      fialaLine = svgGroup.append("path") // Kreslíme do svgGroup
       .datum(dataFiala)
       .attr("class", "true-line")
       .attr("d", line);
 
-      // Animace čáry
       const totalLength = fialaLine.node().getTotalLength();
 
       fialaLine
       .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
       .attr("stroke-dashoffset", totalLength)
       .transition()
-      .duration(1500) // ⏱ délka animace v ms
+      .duration(1500)
       .ease(d3.easeCubicInOut)
       .attr("stroke-dashoffset", 0);
 
@@ -549,21 +547,21 @@ function drawChart() {
     const fialaTextXOffset = window.innerWidth < 500 ? 10 : 14;
     const userTextXOffset = closeY ? (window.innerWidth < 500 ? 12 : 15) : (window.innerWidth < 500 ? 20 : 25);
 
-    svg.append("circle")
+    svgGroup.append("circle") // Kreslíme do svgGroup
       .attr("cx", fialaX)
       .attr("cy", fialaY)
       .attr("r", window.innerWidth < 500 ? 4 : 5)
       .attr("fill", "#000")
       .classed("fiala-end-label", true);
 
-    svg.append("circle")
+    svgGroup.append("circle") // Kreslíme do svgGroup
       .attr("cx", userX)
       .attr("cy", userY)
       .attr("r", window.innerWidth < 500 ? 4 : 5)
       .attr("fill", "#1e88e5")
       .classed("user-dot", true);
 
-    svg.append("text")
+    svgGroup.append("text") // Kreslíme do svgGroup
       .attr("x", fialaX + fialaTextXOffset)
       .attr("y", fialaY + fialaTextYOffset - (window.innerWidth < 500 ? 8 : 10))
       .attr("text-anchor", "start")
@@ -573,7 +571,7 @@ function drawChart() {
       .text(`${endFiala.Inflace.toFixed(1)} %`)
       .classed("fiala-end-label", true);
 
-    svg.append("text")
+    svgGroup.append("text") // Kreslíme do svgGroup
       .attr("x", userX + userTextXOffset)
       .attr("y", userY + userTextYOffset - (window.innerWidth < 500 ? 8 : 10))
       .attr("text-anchor", "start")
@@ -592,34 +590,37 @@ function drawChart() {
     userPath.attr("d", null);
     if (fialaLine) fialaLine.remove();
 
-    svg.selectAll("circle.user-dot").remove();
-    svg.selectAll("text").filter(function() {
+    svgGroup.selectAll("circle.user-dot").remove();
+    svgGroup.selectAll("text").filter(function() {
       return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
     }).remove();
 
     usedLabelPositions = [];
     document.getElementById("truth").style.display = "none";
     document.getElementById("evaluate").disabled = true;
-    svg.selectAll(".fiala-end-label").remove();
-    d3.select("#completion-highlight").style("display", "none");
+    svgGroup.selectAll(".fiala-end-label").remove();
+    yellowOverlay.style("display", "none");
   }
 
-  // Přidáme funkce pro touch události, ale zajistíme, že se `d3.pointer` používá správně
-  d3.select("#chart").on("touchstart", function(event) {
-    event.preventDefault(); // Zabraň posouvání stránky
-    d3.select(this).on("mousedown").call(this, event.touches[0]); // Voláme mousedown handler s prvním dotykem
+  // ⭐ DŮLEŽITÉ: Touch události nyní přímo na 'drawingArea'
+  drawingArea.on("touchstart", function(event) {
+    event.preventDefault();
+    // Simulujeme mousedown na drawingArea
+    d3.select(this).on("mousedown").call(this, event.touches[0]);
   }, { passive: false });
 
-  d3.select("#chart").on("touchmove", function(event) {
-    event.preventDefault(); // Zabraň posouvání stránky
+  drawingArea.on("touchmove", function(event) {
+    event.preventDefault();
     if (isDrawing) {
-        d3.select(this).on("mousemove").call(this, event.touches[0]); // Voláme mousemove handler s prvním dotykem
+        // Simulujeme mousemove na drawingArea
+        d3.select(this).on("mousemove").call(this, event.touches[0]);
     }
   }, { passive: false });
 
-  d3.select("#chart").on("touchend", function(event) {
-    event.preventDefault(); // Zabraň posouvání stránky
-    d3.select(this).on("mouseup").call(this, event); // Voláme mouseup handler
+  drawingArea.on("touchend", function(event) {
+    event.preventDefault();
+    // Simulujeme mouseup na drawingArea
+    d3.select(this).on("mouseup").call(this, event);
   }, { passive: false });
 
 
@@ -629,14 +630,12 @@ function drawChart() {
 
 } // Konec drawChart() funkce
 
-// Vykreslit graf při načtení stránky
 drawChart();
 
-// Přidat listener pro změnu velikosti okna pro responzivitu
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(drawChart, 250); // Zpoždění pro zamezení mnoha vykreslení
+  resizeTimer = setTimeout(drawChart, 250);
 });
 
 </script>
