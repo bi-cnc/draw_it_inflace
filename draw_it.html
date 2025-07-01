@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>You Draw It – Inflace (Babiš vs Fiala)</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9fafb;
+      color: #222;
+      margin: 40px auto;
+      max-width: 960px;
+      padding: 0 20px;
+    }
+    h2 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: #1a237e;
+    }
+    p {
+      font-size: 1.1rem;
+      color: #444;
+      margin-bottom: 30px;
+    }
+    svg {
+      width: 100%;
+      height: auto;
+    }
+    .true-line {
+      stroke: #e53935;
+      fill: none;
+      stroke-width: 2.5;
+    }
+    .user-line {
+      stroke: #1e88e5;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 4,4;
+    }
+    .label {
+      font-size: 14px;
+      fill: #555;
+    }
+    .btn-container {
+      margin-top: 20px;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 1rem;
+      background-color: #1e88e5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #1565c0;
+    }
+    #truth {
+      margin-top: 25px;
+      padding: 15px;
+      background: #e8f0fe;
+      border-left: 4px solid #1e88e5;
+      font-size: 1.1rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
+<p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
+<svg id="chart" height="450"></svg>
+
+<div class="btn-container">
+  <button onclick="resetDrawing()">Zkusit znovu</button>
+  <button id="evaluate" onclick="evaluateTip()" disabled>Vyhodnotit můj tip</button>
+</div>
+
+<div id="truth">
+  Skutečný vývoj inflace v ČR byl následující:
+  <ul>
+    <li><strong>2022:</strong> Inflace dosáhla vrcholu 18 % v září 2022.</li>
+    <li><strong>2023:</strong> Inflace výrazně klesla. V polovině roku pod 10 %, ke konci roku se pohybovala okolo 7 %.</li>
+    <li><strong>2024 a 2025:</strong> Stabilizace k rozmezí mezi 2 až 3 %.</li>
+  </ul>
+  Tento pokles následoval po velmi silném inflačním šoku v roce 2022 v důsledku války na Ukrajině a následné energetické krizi.
+</div>
+
+<script>
+const dataReal = [
+  {"Datum":"2017-12","Inflace":2.4,"Obdobi":"Babiš"},
+  {"Datum":"2018-01","Inflace":2.2,"Obdobi":"Babiš"},
+  {"Datum":"2018-02","Inflace":1.8,"Obdobi":"Babiš"},
+  {"Datum":"2018-03","Inflace":1.7,"Obdobi":"Babiš"},
+  {"Datum":"2018-04","Inflace":1.9,"Obdobi":"Babiš"},
+  {"Datum":"2018-05","Inflace":2.2,"Obdobi":"Babiš"},
+  {"Datum":"2018-06","Inflace":2.6,"Obdobi":"Babiš"},
+  {"Datum":"2018-07","Inflace":2.3,"Obdobi":"Babiš"},
+  {"Datum":"2018-08","Inflace":2.5,"Obdobi":"Babiš"},
+  {"Datum":"2018-09","Inflace":2.3,"Obdobi":"Babiš"},
+  {"Datum":"2018-10","Inflace":2.2,"Obdobi":"Babiš"},
+  {"Datum":"2018-11","Inflace":2.0,"Obdobi":"Babiš"},
+  {"Datum":"2018-12","Inflace":2.0,"Obdobi":"Babiš"},
+  {"Datum":"2019-01","Inflace":2.5,"Obdobi":"Babiš"},
+  {"Datum":"2019-02","Inflace":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-03","Inflace":3.0,"Obdobi":"Babiš"},
+  {"Datum":"2019-04","Inflace":2.8,"Obdobi":"Babiš"},
+  {"Datum":"2019-05","Inflace":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2019-06","Inflace":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-07","Inflace":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2019-08","Inflace":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2019-09","Inflace":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-10","Inflace":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-11","Inflace":3.1,"Obdobi":"Babiš"},
+  {"Datum":"2019-12","Inflace":3.2,"Obdobi":"Babiš"},
+  {"Datum":"2020-01","Inflace":3.6,"Obdobi":"Babiš"},
+  {"Datum":"2020-02","Inflace":3.7,"Obdobi":"Babiš"},
+  {"Datum":"2020-03","Inflace":3.4,"Obdobi":"Babiš"},
+  {"Datum":"2020-04","Inflace":3.2,"Obdobi":"Babiš"},
+  {"Datum":"2020-05","Inflace":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2020-06","Inflace":3.3,"Obdobi":"Babiš"},
+  {"Datum":"2020-07","Inflace":3.4,"Obdobi":"Babiš"},
+  {"Datum":"2020-08","Inflace":3.3,"Obdobi":"Babiš"},
+  {"Datum":"2020-09","Inflace":3.2,"Obdobi":"Babiš"},
+  {"Datum":"2020-10","Inflace":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2020-11","Inflace":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2020-12","Inflace":2.3,"Obdobi":"Babiš"},
+  {"Datum":"2021-01","Inflace":2.2,"Obdobi":"Babiš"},
+  {"Datum":"2021-02","Inflace":2.1,"Obdobi":"Babiš"},
+  {"Datum":"2021-03","Inflace":2.3,"Obdobi":"Babiš"},
+  {"Datum":"2021-04","Inflace":3.1,"Obdobi":"Babiš"},
+  {"Datum":"2021-05","Inflace":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2021-06","Inflace":2.8,"Obdobi":"Babiš"},
+  {"Datum":"2021-07","Inflace":3.4,"Obdobi":"Babiš"},
+  {"Datum":"2021-08","Inflace":4.1,"Obdobi":"Babiš"},
+  {"Datum":"2021-09","Inflace":4.9,"Obdobi":"Babiš"},
+  {"Datum":"2021-10","Inflace":5.8,"Obdobi":"Babiš"},
+  {"Datum":"2021-11","Inflace":6.0,"Obdobi":"Babiš"},
+  {"Datum":"2021-12","Inflace":6.6,"Obdobi":"Fiala"},
+  {"Datum":"2022-01","Inflace":9.9,"Obdobi":"Fiala"},
+  {"Datum":"2022-02","Inflace":11.1,"Obdobi":"Fiala"},
+  {"Datum":"2022-03","Inflace":12.7,"Obdobi":"Fiala"},
+  {"Datum":"2022-04","Inflace":14.2,"Obdobi":"Fiala"},
+  {"Datum":"2022-05","Inflace":16.0,"Obdobi":"Fiala"},
+  {"Datum":"2022-06","Inflace":17.2,"Obdobi":"Fiala"},
+  {"Datum":"2022-07","Inflace":17.5,"Obdobi":"Fiala"},
+  {"Datum":"2022-08","Inflace":17.2,"Obdobi":"Fiala"},
+  {"Datum":"2022-09","Inflace":18.0,"Obdobi":"Fiala"},
+  {"Datum":"2022-10","Inflace":15.1,"Obdobi":"Fiala"},
+  {"Datum":"2022-11","Inflace":16.2,"Obdobi":"Fiala"},
+  {"Datum":"2022-12","Inflace":15.8,"Obdobi":"Fiala"},
+  {"Datum":"2023-01","Inflace":17.5,"Obdobi":"Fiala"},
+  {"Datum":"2023-02","Inflace":16.7,"Obdobi":"Fiala"},
+  {"Datum":"2023-03","Inflace":15.0,"Obdobi":"Fiala"},
+  {"Datum":"2023-04","Inflace":12.7,"Obdobi":"Fiala"},
+  {"Datum":"2023-05","Inflace":11.1,"Obdobi":"Fiala"},
+  {"Datum":"2023-06","Inflace":9.7,"Obdobi":"Fiala"},
+  {"Datum":"2023-07","Inflace":8.8,"Obdobi":"Fiala"},
+  {"Datum":"2023-08","Inflace":8.5,"Obdobi":"Fiala"},
+  {"Datum":"2023-09","Inflace":6.9,"Obdobi":"Fiala"},
+  {"Datum":"2023-10","Inflace":8.5,"Obdobi":"Fiala"},
+  {"Datum":"2023-11","Inflace":7.3,"Obdobi":"Fiala"},
+  {"Datum":"2023-12","Inflace":6.9,"Obdobi":"Fiala"},
+  {"Datum":"2024-01","Inflace":2.3,"Obdobi":"Fiala"},
+  {"Datum":"2024-02","Inflace":2.0,"Obdobi":"Fiala"},
+  {"Datum":"2024-03","Inflace":2.0,"Obdobi":"Fiala"},
+  {"Datum":"2024-04","Inflace":2.9,"Obdobi":"Fiala"},
+  {"Datum":"2024-05","Inflace":2.6,"Obdobi":"Fiala"},
+  {"Datum":"2024-06","Inflace":2.0,"Obdobi":"Fiala"},
+  {"Datum":"2024-07","Inflace":2.2,"Obdobi":"Fiala"},
+  {"Datum":"2024-08","Inflace":2.2,"Obdobi":"Fiala"},
+  {"Datum":"2024-09","Inflace":2.6,"Obdobi":"Fiala"},
+  {"Datum":"2024-10","Inflace":2.8,"Obdobi":"Fiala"},
+  {"Datum":"2024-11","Inflace":2.8,"Obdobi":"Fiala"},
+  {"Datum":"2024-12","Inflace":3.0,"Obdobi":"Fiala"},
+  {"Datum":"2025-01","Inflace":2.8,"Obdobi":"Fiala"},
+  {"Datum":"2025-02","Inflace":2.7,"Obdobi":"Fiala"},
+  {"Datum":"2025-03","Inflace":2.7,"Obdobi":"Fiala"},
+  {"Datum":"2025-04","Inflace":1.8,"Obdobi":"Fiala"},
+  {"Datum":"2025-05","Inflace":2.4,"Obdobi":"Fiala"}
+];
+
+// Tady pokračuj ve vykreslení pomocí D3 – rád ti to dodám jako pokračování kódu.
+// Chceš i JS část, která vykreslí interaktivní graf a umožní uživatelské kreslení?
+
+</script>
+<script>
+const parseDate = d3.timeParse("%Y-%m");
+dataReal.forEach(d => d.date = parseDate(d.Datum));
+const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
+const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
+
+const margin = {top: 30, right: 30, bottom: 50, left: 50},
+      width = 900 - margin.left - margin.right,
+      height = 400 - margin.top - margin.bottom;
+
+const svg = d3.select("#chart")
+  .append("g")
+  .attr("transform", `translate(${margin.left},${margin.top})`);
+
+const x = d3.scaleTime().domain(d3.extent(dataReal, d => d.date)).range([0, width]);
+const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
+
+let isDrawing = false, hasDrawn = false, evaluated = false;
+let userPoints = [], usedLabelPositions = [];
+let userPath = svg.append("path").attr("class", "user-line");
+let fialaLine;
+
+function drawLabelWithDot(xPos, yPos, color, text, align = "start", bold = false, blackText = false, xOffset = 0, isUser = false) {
+  let adjustedY = yPos;
+  const labelHeight = 18;
+
+  while (usedLabelPositions.some(pos => Math.abs(pos - adjustedY) < labelHeight)) {
+    adjustedY -= labelHeight;
+  }
+  usedLabelPositions.push(adjustedY);
+
+  const circle = svg.append("circle")
+    .attr("cx", xPos)
+    .attr("cy", adjustedY)
+    .attr("r", 5)
+    .attr("fill", color);
+
+  if (isUser) circle.classed("user-dot", true); // tečka se smaže jen pokud je uživatelská
+
+  svg.append("text")
+    .attr("x", xPos + xOffset + (align === "start" ? 8 : align === "middle" ? 0 : -8))
+    .attr("y", adjustedY - 10)
+    .attr("text-anchor", align)
+    .style("fill", blackText ? "#000" : color)
+    .style("font-weight", bold ? "bold" : "normal")
+    .style("font-size", "14px")
+    .text(text);
+}
+
+// Osy
+svg.append("g")
+  .attr("transform", `translate(0,${height})`)
+  .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y")).ticks(10))
+  .selectAll("text")
+  .style("text-anchor", "middle")
+  .style("font-size", "14px");
+
+const area = d3.area()
+  .x(d => x(d.date))
+  .y0(height)
+  .y1(d => y(d.Inflace))
+  .curve(d3.curveMonotoneX);
+
+// Pozadí vlád
+svg.append("rect")
+  .attr("x", x(parseDate("2017-12")))
+  .attr("width", x(parseDate("2021-12")) - x(parseDate("2017-12")))
+  .attr("height", height)
+  .attr("fill", "#e53935")
+  .attr("opacity", 0.05);
+
+const yellowOverlay = svg.append("rect")
+  .attr("id", "completion-highlight")
+  .attr("y", 0)
+  .attr("height", height)
+  .attr("fill", "#fff59d")
+  .attr("opacity", 0.6)
+  .style("display", "none");
+
+
+
+svg.append("rect")
+  .attr("x", x(parseDate("2021-12")))
+  .attr("width", x(parseDate("2025-05")) - x(parseDate("2021-12")))
+  .attr("height", height)
+  .attr("fill", "#1e88e5")
+  .attr("opacity", 0.05);
+
+
+// Babišova vláda – větší, tučné, s rozestupem
+svg.append("text")
+  .attr("x", x(parseDate("2019-01")))
+  .attr("y", 30)
+  .text("BABIŠOVA VLÁDA")
+  .attr("class", "label")
+  .style("fill", "#282660")
+  .style("font-size", "20px")
+  .style("font-weight", "bold")
+  .style("letter-spacing", "2px");
+
+// Fialova vláda – větší, tučné, s rozestupem
+svg.append("text")
+  .attr("x", x(parseDate("2023-01")))
+  .attr("y", 30)
+  .text("FIALOVA VLÁDA")
+  .attr("class", "label")
+  .style("fill", "#1e88e5")
+  .style("font-size", "20px")
+  .style("font-weight", "bold")
+  .style("letter-spacing", "2px");
+
+svg.append("g")
+  .attr("class", "y-grid")
+  .call(
+    d3.axisLeft(y)
+      .tickSize(-width)
+      .tickFormat("") // ⛔️ skryjeme čísla
+  )
+  .selectAll("line")
+  .attr("stroke", "#ddd") // jemná šedá
+  .attr("stroke-dasharray", "2,2"); // volitelně přerušovaná čára
+
+// Odstraň čáru osy
+svg.selectAll(".y-grid path").remove();
+
+
+// Babišova čára
+const line = d3.line().x(d => x(d.date)).y(d => y(d.Inflace)).curve(d3.curveMonotoneX);
+svg.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
+// Označení začátku a konce Babišovy vlády inflací
+const startBabis = dataBabis[0]; // 2017-12
+const endBabis = dataBabis[dataBabis.length - 1]; // 2021-11
+
+drawLabelWithDot(
+  x(startBabis.date),
+  y(startBabis.Inflace),
+  "#000", // barva tečky
+  `${startBabis.Inflace.toFixed(1)} %`,
+  "start",
+  true,
+  true // černý text
+);
+
+drawLabelWithDot(
+  x(endBabis.date),
+  y(endBabis.Inflace),
+  "#000",
+  `${endBabis.Inflace.toFixed(1)} %`,
+  "start",
+  true,
+  true,
+  -40 // ⬅️ posune text doleva, tečka zůstane
+);
+
+
+// Kreslení
+svg.append("rect")
+  .attr("width", width)
+  .attr("height", height)
+  .attr("fill", "transparent")
+  .style("cursor", "crosshair")
+
+  .on("mousedown", () => {
+    if (evaluated) return;
+
+    isDrawing = true;
+    hasDrawn = false;
+    userPoints = [];
+    userPath.attr("d", null);
+    svg.selectAll("circle.user-dot").remove();
+    svg.selectAll("text").filter(function () {
+      return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+    }).remove();
+
+    // Nový začátek žluté zóny při novém kreslení
+    const start = x(parseDate("2021-12"));
+    const end = x(parseDate("2025-05"));
+    d3.select("#completion-highlight")
+      .style("display", "block")
+      .attr("x", start)
+      .attr("width", end - start);
+  })
+
+  .on("mouseup", () => {
+    if (!isDrawing || evaluated) return;
+    isDrawing = false;
+    hasDrawn = true;
+
+    const lastPoint = userPoints.at(-1);
+    const endDate = parseDate("2025-05");
+    const lastX = x(lastPoint?.[0]);
+    const endX = x(endDate);
+
+    // Pokud poslední bod je blízko konci (±5 px)
+    if (lastPoint && lastX >= endX - 5) {
+      document.getElementById("evaluate").disabled = false;
+      d3.select("#completion-highlight").style("display", "none");
+    } else {
+      document.getElementById("evaluate").disabled = true;
+      d3.select("#completion-highlight").style("display", "block");
+    }
+  })
+
+  .on("mousemove", function (event) {
+    if (!isDrawing || evaluated) return;
+
+    const [px, py] = d3.pointer(event);
+    const xDate = x.invert(px);
+    const yVal = y.invert(py);
+
+    if (
+      xDate >= parseDate("2021-12") &&
+      xDate <= parseDate("2025-05") &&
+      yVal >= 0 &&
+      yVal <= 25
+    ) {
+      userPoints.push([xDate, yVal]);
+
+      userPath.attr("d",
+        d3.line()
+          .x(d => x(d[0]))
+          .y(d => y(d[1]))
+          .curve(d3.curveMonotoneX)(userPoints)
+      );
+
+      const lastDate = userPoints.at(-1)[0];
+      const endDate = parseDate("2025-05");
+      const lastX = x(lastDate);
+      const endX = x(endDate);
+
+      if (lastX >= endX - 5) {
+        d3.select("#completion-highlight").style("display", "none");
+        document.getElementById("evaluate").disabled = false;
+      } else {
+        d3.select("#completion-highlight")
+          .style("display", "block")
+          .attr("x", lastX)
+          .attr("width", endX - lastX);
+        document.getElementById("evaluate").disabled = true;
+      }
+    }
+  })
+
+  .on("mouseleave", function () {
+    if (!isDrawing || evaluated) return;
+
+    const lastPoint = userPoints.at(-1);
+    const endDate = parseDate("2025-05");
+    const lastX = x(lastPoint?.[0]);
+    const endX = x(endDate);
+
+    if (lastPoint && lastX >= endX - 5) {
+      d3.select("#completion-highlight").style("display", "none");
+      document.getElementById("evaluate").disabled = false;
+    }
+  });
+
+    
+function evaluateTip() {
+  if (evaluated || !hasDrawn) return;
+  evaluated = true;
+  document.getElementById("evaluate").disabled = true;
+
+    // Fialova čára – s animací
+    fialaLine = svg.append("path")
+    .datum(dataFiala)
+    .attr("class", "true-line")
+    .attr("d", line);
+
+    // Animace čáry
+    const totalLength = fialaLine.node().getTotalLength();
+
+    fialaLine
+    .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
+    .attr("stroke-dashoffset", totalLength)
+    .transition()
+    .duration(1500) // ⏱ délka animace v ms
+    .ease(d3.easeCubicInOut)
+    .attr("stroke-dashoffset", 0);
+
+  document.getElementById("truth").style.display = "block";
+
+  const endFiala = dataFiala[dataFiala.length - 1];
+  const lastUserPoint = userPoints.at(-1);
+
+  const fialaY = y(endFiala.Inflace);
+  const userY = y(lastUserPoint[1]);
+  const fialaX = x(endFiala.date);
+  const userX = x(lastUserPoint[0]);
+
+  // Pokud jsou Y příliš blízko → úprava offsetu
+  const minYGap = 16;
+  const closeY = Math.abs(fialaY - userY) < minYGap;
+
+  const fialaTextYOffset = closeY ? -minYGap / 2 : 0;
+  const userTextYOffset = closeY ? minYGap / 2 : 0;
+
+  // Pokud jsou Y hodně blízko → posuň modrý více doprava
+  const fialaTextXOffset = 14;
+  const userTextXOffset = closeY ? 15 : 25;
+
+  // Tečka reality – zůstává
+  svg.append("circle")
+    .attr("cx", fialaX)
+    .attr("cy", fialaY)
+    .attr("r", 5)
+    .attr("fill", "#000")
+    .classed("fiala-end-label", true);
+
+  // Tečka tipu – zůstává
+  svg.append("circle")
+    .attr("cx", userX)
+    .attr("cy", userY)
+    .attr("r", 5)
+    .attr("fill", "#1e88e5")
+    .classed("user-dot", true);
+
+  // Popisek reality
+  svg.append("text")
+    .attr("x", fialaX + fialaTextXOffset)
+    .attr("y", fialaY + fialaTextYOffset - 10)
+    .attr("text-anchor", "start")
+    .style("fill", "#000")
+    .style("font-weight", "bold")
+    .style("font-size", "14px")
+    .text(`${endFiala.Inflace.toFixed(1)} %`)
+    .classed("fiala-end-label", true);
+
+  // Popisek tipu
+  svg.append("text")
+    .attr("x", userX + userTextXOffset)
+    .attr("y", userY + userTextYOffset - 10)
+    .attr("text-anchor", "start")
+    .style("fill", "#1e88e5")
+    .style("font-weight", "bold")
+    .style("font-size", "14px")
+    .text(`${lastUserPoint[1].toFixed(1)} %`)
+    .classed("user-dot", true);
+}
+
+
+
+function resetDrawing() {
+  isDrawing = false;
+  hasDrawn = false;
+  evaluated = false;
+  userPoints = [];
+  userPath.attr("d", null);
+  if (fialaLine) fialaLine.remove();
+
+  // ⛔️ Smazat pouze uživatelské tečky a popisky
+  svg.selectAll("circle.user-dot").remove();
+  svg.selectAll("text").filter(function() {
+    return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+  }).remove();
+
+  usedLabelPositions = [];
+  document.getElementById("truth").style.display = "none";
+  document.getElementById("evaluate").disabled = true;
+  svg.selectAll(".fiala-end-label").remove();
+  d3.select("#completion-highlight").style("display", "none");
+}
+
+window.addEventListener("mouseup", () => {
+  if (!isDrawing || evaluated || !userPoints.length) return;
+
+  isDrawing = false;
+  hasDrawn = true;
+
+  const lastPoint = userPoints.at(-1);
+  const endDate = parseDate("2025-05");
+  const lastX = x(lastPoint?.[0]);
+  const endX = x(endDate);
+
+  if (lastPoint && lastX >= endX - 5) {
+    d3.select("#completion-highlight").style("display", "none");
+    document.getElementById("evaluate").disabled = false;
+  }
+});
+
+</script>
+
+</body>
+</html>
+
