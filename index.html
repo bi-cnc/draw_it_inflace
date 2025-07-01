@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+nakonec mi to přišlo super tak jak to bylo, tady kod: <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
@@ -68,11 +68,6 @@
       border-left: 4px solid #1e88e5;
       font-size: 1.1rem;
       display: none;
-    }
-    #chart {
-  max-width: 640px;
-  margin: 0 auto;
-  overflow: visible;
     }
   </style>
 </head>
@@ -200,17 +195,13 @@ dataReal.forEach(d => d.date = parseDate(d.Datum));
 const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
 const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
-const margin = { top: 100, right: 30, bottom: 40, left: 30 };
-const width = 580;
-const height = 400;
+const margin = {top: 30, right: 30, bottom: 50, left: 50},
+      width = 900 - margin.left - margin.right,
+      height = 400 - margin.top - margin.bottom;
 
 const svg = d3.select("#chart")
-  .append("svg")
-  .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
-  .attr("preserveAspectRatio", "xMidYMid meet")
-  .style("width", "100%")
-  .style("height", "auto")
-  .style("overflow", "visible");
+  .append("g")
+  .attr("transform", `translate(${margin.left},${margin.top})`);
 
 const x = d3.scaleTime().domain(d3.extent(dataReal, d => d.date)).range([0, width]);
 const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
@@ -287,11 +278,10 @@ svg.append("rect")
   .attr("opacity", 0.05);
 
 
-// Babišova vláda (doprostřed svého období)
+// Babišova vláda – větší, tučné, s rozestupem
 svg.append("text")
-  .attr("x", (x(parseDate("2017-12")) + x(parseDate("2021-12"))) / 2)
-  .attr("y", -20) // více prostoru nahoře
-  .attr("text-anchor", "middle")
+  .attr("x", x(parseDate("2019-01")))
+  .attr("y", 30)
   .text("BABIŠOVA VLÁDA")
   .attr("class", "label")
   .style("fill", "#282660")
@@ -299,11 +289,10 @@ svg.append("text")
   .style("font-weight", "bold")
   .style("letter-spacing", "2px");
 
-// Fialova vláda
+// Fialova vláda – větší, tučné, s rozestupem
 svg.append("text")
-  .attr("x", (x(parseDate("2021-12")) + x(parseDate("2025-05"))) / 2)
-  .attr("y", -20)
-  .attr("text-anchor", "middle")
+  .attr("x", x(parseDate("2023-01")))
+  .attr("y", 30)
   .text("FIALOVA VLÁDA")
   .attr("class", "label")
   .style("fill", "#1e88e5")
@@ -584,4 +573,3 @@ window.addEventListener("mouseup", () => {
 
 </body>
 </html>
-
