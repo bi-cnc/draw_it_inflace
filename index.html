@@ -13,25 +13,31 @@
       max-width: 620px;
       padding: 0 20px;
     }
+
     h2 {
       font-size: 2rem;
       margin-bottom: 10px;
       color: #1a237e;
     }
+
     p {
       font-size: 1.1rem;
       color: #444;
       margin-bottom: 30px;
     }
+
     svg {
       width: 100%;
       height: auto;
+      display: block;
     }
+
     .true-line {
       stroke: #e53935;
       fill: none;
       stroke-width: 2.5;
     }
+
     .user-line {
       stroke: #1e88e5;
       fill: none;
@@ -40,13 +46,16 @@
       stroke-linejoin: round;
       stroke-dasharray: 4,4;
     }
+
     .label {
       font-size: 14px;
       fill: #555;
     }
+
     .btn-container {
       margin-top: 20px;
     }
+
     button {
       padding: 12px 20px;
       font-size: 1rem;
@@ -58,9 +67,11 @@
       transition: background-color 0.2s;
       margin-right: 10px;
     }
+
     button:hover {
       background-color: #1565c0;
     }
+
     #truth {
       margin-top: 25px;
       padding: 15px;
@@ -69,12 +80,24 @@
       font-size: 1.1rem;
       display: none;
     }
+
+    @media screen and (max-width: 480px) {
+      h2 {
+        font-size: 1.4rem;
+      }
+      p, .label, button {
+        font-size: 0.95rem;
+      }
+    }
   </style>
 </head>
 <body>
+
 <h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
 <p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
-<svg id="chart" height="550"></svg>
+
+<!-- SVG graf s responzivním poměrem -->
+<svg id="chart" viewBox="0 0 620 520" preserveAspectRatio="xMidYMid meet"></svg>
 
 <div class="btn-container">
   <button onclick="resetDrawing()">Zkusit znovu</button>
@@ -195,16 +218,24 @@ dataReal.forEach(d => d.date = parseDate(d.Datum));
 const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
 const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
+// 💡 Dynamická šířka a výška podle velikosti SVG
+const containerWidth = document.getElementById("chart").clientWidth;
 const margin = {top: 50, right: 40, bottom: 50, left: 50},
-      width = 560 - margin.left - margin.right,
-      height = 520 - margin.top - margin.bottom;
+      width = containerWidth - margin.left - margin.right,
+      height = (containerWidth * 0.75) - margin.top - margin.bottom;
 
 const svg = d3.select("#chart")
   .append("g")
   .attr("transform", `translate(${margin.left},${margin.top})`);
 
-const x = d3.scaleTime().domain(d3.extent(dataReal, d => d.date)).range([0, width]);
-const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
+// Škálování os
+const x = d3.scaleTime()
+  .domain(d3.extent(dataReal, d => d.date))
+  .range([0, width]);
+
+const y = d3.scaleLinear()
+  .domain([0, d3.max(dataReal, d => d.Inflace) + 2])
+  .range([height, 0]);
 
 let isDrawing = false, hasDrawn = false, evaluated = false;
 let userPoints = [], usedLabelPositions = [];
