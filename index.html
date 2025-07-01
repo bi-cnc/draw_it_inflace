@@ -10,14 +10,15 @@
     font-family: 'Segoe UI', sans-serif;
     background: #f9fafb;
     color: #222;
-    margin: 0;
+    margin: 0 auto; /* Centrování obsahu */
     padding: 20px;
+    width: 100%; /* Důležité pro maximální šířku */
+    box-sizing: border-box; /* Zajišťuje, že padding je uvnitř width */
     }
 
-    @media screen and (min-width: 621px) {
+    @media screen and (max-width: 500px) {
     body {
-        max-width: 620px;
-        margin: 0 auto; /* centrování jen na větších obrazovkách */
+        padding: 16px;
     }
     }
 
@@ -33,17 +34,13 @@
       margin-bottom: 30px;
     }
 
-    .chart-wrapper {
-      margin-left: -20px;
-      margin-right: -20px;
-    }
-
     svg {
-      width: 100%;
-      height: auto;
-      display: block;
-      max-width: 100%;
-      min-height: 300px;
+    width: 100%; /* Vždy 100% dostupné šířky */
+    max-width: 620px; /* Ale ne více než 620px na desktopu */
+    height: auto;
+    display: block;
+    margin: 0 auto; /* Centrování SVG */
+    min-height: 300px; /* Pojistka pro mobil, aby nebyl příliš nízký */
     }
 
     .true-line {
@@ -71,6 +68,8 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+      max-width: 620px; /* Omezení šířky tlačítek na desktopu */
+      margin: 20px auto 0 auto; /* Centrování tlačítek */
     }
 
     button {
@@ -83,6 +82,7 @@
       cursor: pointer;
       transition: background-color 0.2s;
       flex-grow: 1;
+      min-width: 150px;
     }
 
     button:hover {
@@ -96,22 +96,23 @@
       border-left: 4px solid #1e88e5;
       font-size: 1.1rem;
       display: none;
+      max-width: 620px; /* Omezení šířky textového bloku */
+      margin: 25px auto 0 auto; /* Centrování textového bloku */
     }
+
   </style>
 </head>
 <body>
 
-  <h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
-  <p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
+<h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
+<p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
 
-  <div class="chart-wrapper">
-    <svg id="chart" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet"></svg>
-  </div>
+<svg id="chart" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
 
-  <div class="btn-container">
-    <button onclick="resetDrawing()">Zkusit znovu</button>
-    <button id="evaluate" onclick="evaluateTip()" disabled>Vyhodnotit můj tip</button>
-  </div>
+<div class="btn-container">
+  <button onclick="resetDrawing()">Zkusit znovu</button>
+  <button id="evaluate" onclick="evaluateTip()" disabled>Vyhodnotit můj tip</button>
+</div>
 
 <div id="truth">
   Skutečný vývoj inflace v ČR byl následující:
@@ -122,7 +123,6 @@
   </ul>
   Tento pokles následoval po velmi silném inflačním šoku v roce 2022 v důsledku války na Ukrajině a následné energetické krizi.
 </div>
-
 
 <script>
 const dataReal = [
@@ -228,380 +228,415 @@ dataReal.forEach(d => d.date = parseDate(d.Datum));
 const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
 const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
-const containerWidth = document.getElementById("chart").getBoundingClientRect().width;
-const margin = { top: 50, right: 40, bottom: 50, left: 50 };
-const width = containerWidth - margin.left - margin.right;
-let heightRatio = window.innerWidth < 500 ? 1.3 : 0.75;
-const height = (containerWidth * heightRatio) - margin.top - margin.bottom;
+// Vykreslovací funkce pro celý graf, aby se dala volat při změně velikosti okna
+function drawChart() {
+  // Vyčistíme SVG před opětovným vykreslením
+  d3.select("#chart").selectAll("*").remove();
 
-const svg = d3.select("#chart")
-  .append("g")
-  .attr("transform", `translate(${margin.left},${margin.top})`);
+  const containerWidth = document.getElementById("chart").getBoundingClientRect().width;
+  // Upravené okraje pro lepší využití prostoru, zejména na mobilu
+  const margin = { top: 60, right: 40, bottom: 60, left: 50 }; // Zvýšený horní a dolní okraj pro nadpisy a osy
+  const width = containerWidth - margin.left - margin.right;
+  let heightRatio = window.innerWidth < 500 ? 1.3 : 0.75;
+  const height = (containerWidth * heightRatio) - margin.top - margin.bottom;
 
-const x = d3.scaleTime().domain(d3.extent(dataReal, d => d.date)).range([0, width]);
-const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
+  const svg = d3.select("#chart")
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
 
-let isDrawing = false, hasDrawn = false, evaluated = false;
-let userPoints = [], usedLabelPositions = [];
-let userPath = svg.append("path").attr("class", "user-line");
-let fialaLine;
+  // Dynamický rozsah osy X, začínáme dříve než první data, pro lepší zarovnání osy
+  const minDate = d3.min(dataReal, d => d.date);
+  const maxDate = d3.max(dataReal, d => d.date);
+  const x = d3.scaleTime().domain([d3.timeMonth.offset(minDate, -1), d3.timeMonth.offset(maxDate, 1)]).range([0, width]); // Rozšířený rozsah
+  const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
 
-function drawLabelWithDot(xPos, yPos, color, text, align = "start", bold = false, blackText = false, xOffset = 0, isUser = false) {
-  let adjustedY = yPos;
-  const labelHeight = 18;
+  let isDrawing = false, hasDrawn = false, evaluated = false;
+  let userPoints = [], usedLabelPositions = [];
+  let userPath = svg.append("path").attr("class", "user-line");
+  let fialaLine;
 
-  while (usedLabelPositions.some(pos => Math.abs(pos - adjustedY) < labelHeight)) {
-    adjustedY -= labelHeight;
+  function drawLabelWithDot(xPos, yPos, color, text, align = "start", bold = false, blackText = false, xOffset = 0, isUser = false) {
+    let adjustedY = yPos;
+    const labelHeight = window.innerWidth < 500 ? 14 : 18;
+
+    while (usedLabelPositions.some(pos => Math.abs(pos - adjustedY) < labelHeight)) {
+      adjustedY -= labelHeight;
+    }
+    usedLabelPositions.push(adjustedY);
+
+    const circle = svg.append("circle")
+      .attr("cx", xPos)
+      .attr("cy", adjustedY)
+      .attr("r", window.innerWidth < 500 ? 4 : 5)
+      .attr("fill", color);
+
+    if (isUser) circle.classed("user-dot", true);
+
+    svg.append("text")
+      .attr("x", xPos + xOffset + (align === "start" ? 8 : align === "middle" ? 0 : -8))
+      .attr("y", adjustedY - (window.innerWidth < 500 ? 8 : 10))
+      .attr("text-anchor", align)
+      .style("fill", blackText ? "#000" : color)
+      .style("font-weight", bold ? "bold" : "normal")
+      .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+      .text(text);
   }
-  usedLabelPositions.push(adjustedY);
 
-  const circle = svg.append("circle")
-    .attr("cx", xPos)
-    .attr("cy", adjustedY)
-    .attr("r", 5)
-    .attr("fill", color);
+  // Osy
+  svg.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x)
+          .tickFormat(d3.timeFormat("%Y"))
+          .ticks(window.innerWidth < 500 ? d3.timeYear.every(2) : d3.timeYear.every(1)) // Mění interval ticků pro mobil
+    )
+    .selectAll("text")
+    .style("text-anchor", "middle")
+    .style("font-size", window.innerWidth < 500 ? "10px" : "14px")
+    // Posunout popisky let na ose X trochu níže, aby se nepřekrývaly s dolním okrajem grafu
+    .attr("dy", "1em");
 
-  if (isUser) circle.classed("user-dot", true); // tečka se smaže jen pokud je uživatelská
+
+  const area = d3.area()
+    .x(d => x(d.date))
+    .y0(height)
+    .y1(d => y(d.Inflace))
+    .curve(d3.curveMonotoneX);
+
+  // Pozadí vlád
+  svg.append("rect")
+    .attr("x", x(parseDate("2017-12")))
+    .attr("width", x(parseDate("2021-12")) - x(parseDate("2017-12")))
+    .attr("height", height)
+    .attr("fill", "#e53935")
+    .attr("opacity", 0.05);
+
+  const yellowOverlay = svg.append("rect")
+    .attr("id", "completion-highlight")
+    .attr("y", 0)
+    .attr("height", height)
+    .attr("fill", "#fff59d")
+    .attr("opacity", 0.6)
+    .style("display", "none");
+
+  svg.append("rect")
+    .attr("x", x(parseDate("2021-12")))
+    .attr("width", x(parseDate("2025-05")) - x(parseDate("2021-12")))
+    .attr("height", height)
+    .attr("fill", "#1e88e5")
+    .attr("opacity", 0.05);
+
+  // Nadpisy vlád - dynamické pozice
+  const babisMidX = x(parseDate("2019-06")); // Střed Babišovy vlády
+  const fialaMidX = x(parseDate("2023-06")); // Střed Fialovy vlády
+  const titleY = -margin.top / 2 + 10; // Dynamicky umístěné výše, ale ne moc
 
   svg.append("text")
-    .attr("x", xPos + xOffset + (align === "start" ? 8 : align === "middle" ? 0 : -8))
-    .attr("y", adjustedY - 10)
-    .attr("text-anchor", align)
-    .style("fill", blackText ? "#000" : color)
-    .style("font-weight", bold ? "bold" : "normal")
-    .style("font-size", "14px")
-    .text(text);
-}
+    .attr("x", babisMidX)
+    .attr("y", titleY)
+    .text("BABIŠOVA VLÁDA")
+    .attr("class", "label")
+    .style("fill", "#282660")
+    .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
+    .style("font-weight", "bold")
+    .style("letter-spacing", "1px")
+    .attr("text-anchor", "middle"); // Centrovat text
 
-// Osy
-svg.append("g")
-  .attr("transform", `translate(0,${height})`)
-  .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y")).ticks(10))
-  .selectAll("text")
-  .style("text-anchor", "middle")
-  .style("font-size", "14px");
+  svg.append("text")
+    .attr("x", fialaMidX)
+    .attr("y", titleY)
+    .text("FIALOVA VLÁDA")
+    .attr("class", "label")
+    .style("fill", "#1e88e5")
+    .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
+    .style("font-weight", "bold")
+    .style("letter-spacing", "1px")
+    .attr("text-anchor", "middle"); // Centrovat text
 
-const area = d3.area()
-  .x(d => x(d.date))
-  .y0(height)
-  .y1(d => y(d.Inflace))
-  .curve(d3.curveMonotoneX);
+  svg.append("g")
+    .attr("class", "y-grid")
+    .call(
+      d3.axisLeft(y)
+        .tickSize(-width)
+        .tickFormat("")
+    )
+    .selectAll("line")
+    .attr("stroke", "#ddd")
+    .attr("stroke-dasharray", "2,2");
 
-// Pozadí vlád
-svg.append("rect")
-  .attr("x", x(parseDate("2017-12")))
-  .attr("width", x(parseDate("2021-12")) - x(parseDate("2017-12")))
-  .attr("height", height)
-  .attr("fill", "#e53935")
-  .attr("opacity", 0.05);
+  svg.selectAll(".y-grid path").remove();
 
-const yellowOverlay = svg.append("rect")
-  .attr("id", "completion-highlight")
-  .attr("y", 0)
-  .attr("height", height)
-  .attr("fill", "#fff59d")
-  .attr("opacity", 0.6)
-  .style("display", "none");
+  // Babišova čára
+  const line = d3.line().x(d => x(d.date)).y(d => y(d.Inflace)).curve(d3.curveMonotoneX);
+  svg.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
 
+  // Označení začátku a konce Babišovy vlády inflací
+  const startBabis = dataBabis[0];
+  const endBabis = dataBabis[dataBabis.length - 1];
 
+  drawLabelWithDot(
+    x(startBabis.date),
+    y(startBabis.Inflace),
+    "#000",
+    `${startBabis.Inflace.toFixed(1)} %`,
+    "end", // Změna: end, aby byl text vlevo od tečky
+    true,
+    true,
+    -8 // Menší offset
+  );
 
-svg.append("rect")
-  .attr("x", x(parseDate("2021-12")))
-  .attr("width", x(parseDate("2025-05")) - x(parseDate("2021-12")))
-  .attr("height", height)
-  .attr("fill", "#1e88e5")
-  .attr("opacity", 0.05);
-
-
-// Babišova vláda – větší, tučné, s rozestupem
-svg.append("text")
-  .attr("x", x(parseDate("2018-08")))
-  .attr("y", -10)
-  .text("BABIŠOVA VLÁDA")
-  .attr("class", "label")
-  .style("fill", "#282660")
-  .style("font-size", "20px")
-  .style("font-weight", "bold")
-  .style("letter-spacing", "2px");
-
-// Fialova vláda – větší, tučné, s rozestupem
-svg.append("text")
-  .attr("x", x(parseDate("2022-06")))
-  .attr("y", -10)
-  .text("FIALOVA VLÁDA")
-  .attr("class", "label")
-  .style("fill", "#1e88e5")
-  .style("font-size", "20px")
-  .style("font-weight", "bold")
-  .style("letter-spacing", "2px");
-
-svg.append("g")
-  .attr("class", "y-grid")
-  .call(
-    d3.axisLeft(y)
-      .tickSize(-width)
-      .tickFormat("") // ⛔️ skryjeme čísla
-  )
-  .selectAll("line")
-  .attr("stroke", "#ddd") // jemná šedá
-  .attr("stroke-dasharray", "2,2"); // volitelně přerušovaná čára
-
-// Odstraň čáru osy
-svg.selectAll(".y-grid path").remove();
+  drawLabelWithDot(
+    x(endBabis.date),
+    y(endBabis.Inflace),
+    "#000",
+    `${endBabis.Inflace.toFixed(1)} %`,
+    "start", // Změna: start, aby byl text vpravo od tečky
+    true,
+    true,
+    8 // Menší offset
+  );
 
 
-// Babišova čára
-const line = d3.line().x(d => x(d.date)).y(d => y(d.Inflace)).curve(d3.curveMonotoneX);
-svg.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
-// Označení začátku a konce Babišovy vlády inflací
-const startBabis = dataBabis[0]; // 2017-12
-const endBabis = dataBabis[dataBabis.length - 1]; // 2021-11
+  // Kreslení interakce
+  // Přesuneme listener na svg element a odstraníme z průhledného obdélníku.
+  // To zajistí, že klikáme/táhneme na celé SVG.
+  d3.select("#chart") // Použijeme ID celého SVG
+    .on("mousedown", (event) => {
+      // Pokud se klikne mimo kreslicí oblast (např. na okraj)
+      const [px, py] = d3.pointer(event);
+      const xDate = x.invert(px - margin.left); // Započítáme margin
+      const yVal = y.invert(py - margin.top); // Započítáme margin
 
-drawLabelWithDot(
-  x(startBabis.date),
-  y(startBabis.Inflace),
-  "#000", // barva tečky
-  `${startBabis.Inflace.toFixed(1)} %`,
-  "start",
-  true,
-  true // černý text
-);
+      if (
+        xDate < parseDate("2021-12") ||
+        xDate > parseDate("2025-05") ||
+        yVal < 0 ||
+        yVal > 25
+      ) {
+        return; // Ignorovat mousedown mimo povolený rozsah kreslení
+      }
 
-drawLabelWithDot(
-  x(endBabis.date),
-  y(endBabis.Inflace),
-  "#000",
-  `${endBabis.Inflace.toFixed(1)} %`,
-  "start",
-  true,
-  true,
-  -40 // ⬅️ posune text doleva, tečka zůstane
-);
+      if (evaluated) return;
+      if (event.button === 2) return; // Ignorovat pravé tlačítko myši
 
+      isDrawing = true;
+      hasDrawn = false;
+      userPoints = [];
+      userPath.attr("d", null);
+      svg.selectAll("circle.user-dot").remove();
+      svg.selectAll("text").filter(function () {
+        return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+      }).remove();
+      usedLabelPositions = []; // Reset usedLabelPositions on new drawing
 
-// Kreslení
-svg.append("rect")
-  .attr("width", width)
-  .attr("height", height)
-  .attr("fill", "transparent")
-  .style("cursor", "crosshair")
+      const start = x(parseDate("2021-12"));
+      const end = x(parseDate("2025-05"));
+      d3.select("#completion-highlight")
+        .style("display", "block")
+        .attr("x", start)
+        .attr("width", end - start);
+    })
 
-  .on("mousedown", () => {
-    if (evaluated) return;
+    .on("mouseup", () => {
+      if (!isDrawing || evaluated) return;
+      isDrawing = false;
+      hasDrawn = true;
 
-    isDrawing = true;
+      const lastPoint = userPoints.at(-1);
+      const endDate = parseDate("2025-05");
+      const lastX = x(lastPoint?.[0]);
+      const endX = x(endDate);
+
+      if (lastPoint && lastX >= endX - 5) {
+        document.getElementById("evaluate").disabled = false;
+        d3.select("#completion-highlight").style("display", "none");
+      } else {
+        document.getElementById("evaluate").disabled = true;
+        d3.select("#completion-highlight").style("display", "block");
+      }
+    })
+
+    .on("mousemove", function (event) {
+      if (!isDrawing || evaluated) return;
+
+      const [px, py] = d3.pointer(event, svg.node()); // Získáme souřadnice vzhledem k SVG
+      const xDate = x.invert(px);
+      const yVal = y.invert(py);
+
+      if (
+        xDate >= parseDate("2021-12") &&
+        xDate <= parseDate("2025-05") &&
+        yVal >= 0 &&
+        yVal <= 25
+      ) {
+        userPoints.push([xDate, yVal]);
+
+        userPath.attr("d",
+          d3.line()
+            .x(d => x(d[0]))
+            .y(d => y(d[1]))
+            .curve(d3.curveMonotoneX)(userPoints)
+        );
+
+        const lastDate = userPoints.at(-1)[0];
+        const endDate = parseDate("2025-05");
+        const lastX = x(lastDate);
+        const endX = x(endDate);
+
+        if (lastX >= endX - 5) {
+          d3.select("#completion-highlight").style("display", "none");
+          document.getElementById("evaluate").disabled = false;
+        } else {
+          d3.select("#completion-highlight")
+            .style("display", "block")
+            .attr("x", lastX)
+            .attr("width", endX - lastX);
+          document.getElementById("evaluate").disabled = true;
+        }
+      }
+    })
+    .on("mouseleave", function () {
+      if (!isDrawing || evaluated) return;
+
+      const lastPoint = userPoints.at(-1);
+      const endDate = parseDate("2025-05");
+      const lastX = x(lastPoint?.[0]);
+      const endX = x(endDate);
+
+      if (lastPoint && lastX >= endX - 5) {
+        d3.select("#completion-highlight").style("display", "none");
+        document.getElementById("evaluate").disabled = false;
+      }
+    });
+
+  function evaluateTip() {
+    if (evaluated || !hasDrawn) return;
+    evaluated = true;
+    document.getElementById("evaluate").disabled = true;
+
+      // Fialova čára – s animací
+      fialaLine = svg.append("path")
+      .datum(dataFiala)
+      .attr("class", "true-line")
+      .attr("d", line);
+
+      // Animace čáry
+      const totalLength = fialaLine.node().getTotalLength();
+
+      fialaLine
+      .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
+      .attr("stroke-dashoffset", totalLength)
+      .transition()
+      .duration(1500) // ⏱ délka animace v ms
+      .ease(d3.easeCubicInOut)
+      .attr("stroke-dashoffset", 0);
+
+    document.getElementById("truth").style.display = "block";
+
+    const endFiala = dataFiala[dataFiala.length - 1];
+    const lastUserPoint = userPoints.at(-1);
+
+    const fialaY = y(endFiala.Inflace);
+    const userY = y(lastUserPoint[1]);
+    const fialaX = x(endFiala.date);
+    const userX = x(lastUserPoint[0]);
+
+    const minYGap = window.innerWidth < 500 ? 12 : 16;
+    const closeY = Math.abs(fialaY - userY) < minYGap;
+
+    const fialaTextYOffset = closeY ? -minYGap / 2 : 0;
+    const userTextYOffset = closeY ? minYGap / 2 : 0;
+
+    const fialaTextXOffset = window.innerWidth < 500 ? 10 : 14;
+    const userTextXOffset = closeY ? (window.innerWidth < 500 ? 12 : 15) : (window.innerWidth < 500 ? 20 : 25);
+
+    svg.append("circle")
+      .attr("cx", fialaX)
+      .attr("cy", fialaY)
+      .attr("r", window.innerWidth < 500 ? 4 : 5)
+      .attr("fill", "#000")
+      .classed("fiala-end-label", true);
+
+    svg.append("circle")
+      .attr("cx", userX)
+      .attr("cy", userY)
+      .attr("r", window.innerWidth < 500 ? 4 : 5)
+      .attr("fill", "#1e88e5")
+      .classed("user-dot", true);
+
+    svg.append("text")
+      .attr("x", fialaX + fialaTextXOffset)
+      .attr("y", fialaY + fialaTextYOffset - (window.innerWidth < 500 ? 8 : 10))
+      .attr("text-anchor", "start")
+      .style("fill", "#000")
+      .style("font-weight", "bold")
+      .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+      .text(`${endFiala.Inflace.toFixed(1)} %`)
+      .classed("fiala-end-label", true);
+
+    svg.append("text")
+      .attr("x", userX + userTextXOffset)
+      .attr("y", userY + userTextYOffset - (window.innerWidth < 500 ? 8 : 10))
+      .attr("text-anchor", "start")
+      .style("fill", "#1e88e5")
+      .style("font-weight", "bold")
+      .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+      .text(`${lastUserPoint[1].toFixed(1)} %`)
+      .classed("user-dot", true);
+  }
+
+  function resetDrawing() {
+    isDrawing = false;
     hasDrawn = false;
+    evaluated = false;
     userPoints = [];
     userPath.attr("d", null);
+    if (fialaLine) fialaLine.remove();
+
     svg.selectAll("circle.user-dot").remove();
-    svg.selectAll("text").filter(function () {
+    svg.selectAll("text").filter(function() {
       return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
     }).remove();
 
-    // Nový začátek žluté zóny při novém kreslení
-    const start = x(parseDate("2021-12"));
-    const end = x(parseDate("2025-05"));
-    d3.select("#completion-highlight")
-      .style("display", "block")
-      .attr("x", start)
-      .attr("width", end - start);
-  })
-
-  .on("mouseup", () => {
-    if (!isDrawing || evaluated) return;
-    isDrawing = false;
-    hasDrawn = true;
-
-    const lastPoint = userPoints.at(-1);
-    const endDate = parseDate("2025-05");
-    const lastX = x(lastPoint?.[0]);
-    const endX = x(endDate);
-
-    // Pokud poslední bod je blízko konci (±5 px)
-    if (lastPoint && lastX >= endX - 5) {
-      document.getElementById("evaluate").disabled = false;
-      d3.select("#completion-highlight").style("display", "none");
-    } else {
-      document.getElementById("evaluate").disabled = true;
-      d3.select("#completion-highlight").style("display", "block");
-    }
-  })
-
-  .on("mousemove", function (event) {
-    if (!isDrawing || evaluated) return;
-
-    const [px, py] = d3.pointer(event);
-    const xDate = x.invert(px);
-    const yVal = y.invert(py);
-
-    if (
-      xDate >= parseDate("2021-12") &&
-      xDate <= parseDate("2025-05") &&
-      yVal >= 0 &&
-      yVal <= 25
-    ) {
-      userPoints.push([xDate, yVal]);
-
-      userPath.attr("d",
-        d3.line()
-          .x(d => x(d[0]))
-          .y(d => y(d[1]))
-          .curve(d3.curveMonotoneX)(userPoints)
-      );
-
-      const lastDate = userPoints.at(-1)[0];
-      const endDate = parseDate("2025-05");
-      const lastX = x(lastDate);
-      const endX = x(endDate);
-
-      if (lastX >= endX - 5) {
-        d3.select("#completion-highlight").style("display", "none");
-        document.getElementById("evaluate").disabled = false;
-      } else {
-        d3.select("#completion-highlight")
-          .style("display", "block")
-          .attr("x", lastX)
-          .attr("width", endX - lastX);
-        document.getElementById("evaluate").disabled = true;
-      }
-    }
-  })
-
-  .on("mouseleave", function () {
-    if (!isDrawing || evaluated) return;
-
-    const lastPoint = userPoints.at(-1);
-    const endDate = parseDate("2025-05");
-    const lastX = x(lastPoint?.[0]);
-    const endX = x(endDate);
-
-    if (lastPoint && lastX >= endX - 5) {
-      d3.select("#completion-highlight").style("display", "none");
-      document.getElementById("evaluate").disabled = false;
-    }
-  });
-
-    
-function evaluateTip() {
-  if (evaluated || !hasDrawn) return;
-  evaluated = true;
-  document.getElementById("evaluate").disabled = true;
-
-    // Fialova čára – s animací
-    fialaLine = svg.append("path")
-    .datum(dataFiala)
-    .attr("class", "true-line")
-    .attr("d", line);
-
-    // Animace čáry
-    const totalLength = fialaLine.node().getTotalLength();
-
-    fialaLine
-    .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
-    .attr("stroke-dashoffset", totalLength)
-    .transition()
-    .duration(1500) // ⏱ délka animace v ms
-    .ease(d3.easeCubicInOut)
-    .attr("stroke-dashoffset", 0);
-
-  document.getElementById("truth").style.display = "block";
-
-  const endFiala = dataFiala[dataFiala.length - 1];
-  const lastUserPoint = userPoints.at(-1);
-
-  const fialaY = y(endFiala.Inflace);
-  const userY = y(lastUserPoint[1]);
-  const fialaX = x(endFiala.date);
-  const userX = x(lastUserPoint[0]);
-
-  // Pokud jsou Y příliš blízko → úprava offsetu
-  const minYGap = 16;
-  const closeY = Math.abs(fialaY - userY) < minYGap;
-
-  const fialaTextYOffset = closeY ? -minYGap / 2 : 0;
-  const userTextYOffset = closeY ? minYGap / 2 : 0;
-
-  // Pokud jsou Y hodně blízko → posuň modrý více doprava
-  const fialaTextXOffset = 14;
-  const userTextXOffset = closeY ? 15 : 25;
-
-  // Tečka reality – zůstává
-  svg.append("circle")
-    .attr("cx", fialaX)
-    .attr("cy", fialaY)
-    .attr("r", 5)
-    .attr("fill", "#000")
-    .classed("fiala-end-label", true);
-
-  // Tečka tipu – zůstává
-  svg.append("circle")
-    .attr("cx", userX)
-    .attr("cy", userY)
-    .attr("r", 5)
-    .attr("fill", "#1e88e5")
-    .classed("user-dot", true);
-
-  // Popisek reality
-  svg.append("text")
-    .attr("x", fialaX + fialaTextXOffset)
-    .attr("y", fialaY + fialaTextYOffset - 10)
-    .attr("text-anchor", "start")
-    .style("fill", "#000")
-    .style("font-weight", "bold")
-    .style("font-size", "14px")
-    .text(`${endFiala.Inflace.toFixed(1)} %`)
-    .classed("fiala-end-label", true);
-
-  // Popisek tipu
-  svg.append("text")
-    .attr("x", userX + userTextXOffset)
-    .attr("y", userY + userTextYOffset - 10)
-    .attr("text-anchor", "start")
-    .style("fill", "#1e88e5")
-    .style("font-weight", "bold")
-    .style("font-size", "14px")
-    .text(`${lastUserPoint[1].toFixed(1)} %`)
-    .classed("user-dot", true);
-}
-
-
-
-function resetDrawing() {
-  isDrawing = false;
-  hasDrawn = false;
-  evaluated = false;
-  userPoints = [];
-  userPath.attr("d", null);
-  if (fialaLine) fialaLine.remove();
-
-  // ⛔️ Smazat pouze uživatelské tečky a popisky
-  svg.selectAll("circle.user-dot").remove();
-  svg.selectAll("text").filter(function() {
-    return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
-  }).remove();
-
-  usedLabelPositions = [];
-  document.getElementById("truth").style.display = "none";
-  document.getElementById("evaluate").disabled = true;
-  svg.selectAll(".fiala-end-label").remove();
-  d3.select("#completion-highlight").style("display", "none");
-}
-
-window.addEventListener("mouseup", () => {
-  if (!isDrawing || evaluated || !userPoints.length) return;
-
-  isDrawing = false;
-  hasDrawn = true;
-
-  const lastPoint = userPoints.at(-1);
-  const endDate = parseDate("2025-05");
-  const lastX = x(lastPoint?.[0]);
-  const endX = x(endDate);
-
-  if (lastPoint && lastX >= endX - 5) {
+    usedLabelPositions = [];
+    document.getElementById("truth").style.display = "none";
+    document.getElementById("evaluate").disabled = true;
+    svg.selectAll(".fiala-end-label").remove();
     d3.select("#completion-highlight").style("display", "none");
-    document.getElementById("evaluate").disabled = false;
   }
+
+  // Přidáme funkce pro touch události, ale zajistíme, že se `d3.pointer` používá správně
+  d3.select("#chart").on("touchstart", function(event) {
+    event.preventDefault(); // Zabraň posouvání stránky
+    d3.select(this).on("mousedown").call(this, event.touches[0]); // Voláme mousedown handler s prvním dotykem
+  }, { passive: false });
+
+  d3.select("#chart").on("touchmove", function(event) {
+    event.preventDefault(); // Zabraň posouvání stránky
+    if (isDrawing) {
+        d3.select(this).on("mousemove").call(this, event.touches[0]); // Voláme mousemove handler s prvním dotykem
+    }
+  }, { passive: false });
+
+  d3.select("#chart").on("touchend", function(event) {
+    event.preventDefault(); // Zabraň posouvání stránky
+    d3.select(this).on("mouseup").call(this, event); // Voláme mouseup handler
+  }, { passive: false });
+
+
+  // Globální funkce pro tlačítka
+  window.resetDrawing = resetDrawing;
+  window.evaluateTip = evaluateTip;
+
+} // Konec drawChart() funkce
+
+// Vykreslit graf při načtení stránky
+drawChart();
+
+// Přidat listener pro změnu velikosti okna pro responzivitu
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(drawChart, 250); // Zpoždění pro zamezení mnoha vykreslení
 });
 
 </script>
