@@ -10,23 +10,17 @@
       font-family: 'Segoe UI', sans-serif;
       background: #f9fafb;
       color: #222;
-      margin: 0; /* Úplně odstraníme margin */
-      padding: 0; /* Úplně odstraníme padding */
-      width: 100%; /* Zajistí, že body zabírá celou šířku */
-      box-sizing: border-box; /* Důležité pro responzivitu */
-      overflow-x: hidden; /* Zabrání horizontálnímu scrollování, pokud by se něco přelilo */
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      box-sizing: border-box;
+      overflow-x: hidden; /* Zabrání horizontálnímu scrollování */
     }
 
-    /* @media screen and (max-width: 500px) { */
-    /* body { */
-    /* padding: 0; /* Odstranit padding i zde */
-    /* } */
-    /* } */
-
     h2, p {
-      max-width: 620px; /* Omezení šířky textu */
-      margin: 20px auto 10px auto; /* Centrování textu */
-      padding: 0 16px; /* Přidáme padding pro text, aby se neodlepil na mobilu */
+      max-width: 620px;
+      margin: 20px auto 10px auto;
+      padding: 0 16px;
       box-sizing: border-box;
     }
 
@@ -46,7 +40,7 @@
     svg {
       width: 100%; /* Vždy 100% dostupné šířky */
       max-width: 620px; /* Ale ne více než 620px na desktopu */
-      height: auto;
+      height: auto; /* D3 bude počítat výšku na základě viewBox a heightRatio */
       display: block;
       margin: 0 auto; /* Centrování SVG */
       min-height: 300px; /* Pojistka pro mobil, aby nebyl příliš nízký */
@@ -77,9 +71,9 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      max-width: 620px; /* Omezení šířky tlačítek na desktopu */
-      margin: 20px auto 0 auto; /* Centrování tlačítek */
-      padding: 0 16px; /* Přidáme padding pro tlačítka */
+      max-width: 620px;
+      margin: 20px auto 0 auto;
+      padding: 0 16px;
       box-sizing: border-box;
     }
 
@@ -107,17 +101,16 @@
       border-left: 4px solid #1e88e5;
       font-size: 1.1rem;
       display: none;
-      max-width: 620px; /* Omezení šířky textového bloku */
-      margin: 25px auto 0 auto; /* Centrování textového bloku */
+      max-width: 620px;
+      margin: 25px auto 0 auto;
       box-sizing: border-box;
     }
-
   </style>
 </head>
 <body>
 
 <h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
-<p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
+<p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládunul Andrej Babiš.</p>
 
 <svg id="chart" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
 
@@ -230,42 +223,31 @@ const dataReal = [
   {"Datum":"2025-05","Inflace":2.4,"Obdobi":"Fiala"}
 ];
 
-// Tady pokračuj ve vykreslení pomocí D3 – rád ti to dodám jako pokračování kódu.
-// Chceš i JS část, která vykreslí interaktivní graf a umožní uživatelské kreslení?
-
-</script>
-<script>
 const parseDate = d3.timeParse("%Y-%m");
 dataReal.forEach(d => d.date = parseDate(d.Datum));
 const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
 const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
+// Hlavní vykreslovací funkce pro celý graf
 function drawChart() {
-  d3.select("#chart").selectAll("*").remove(); // Vyčistíme SVG před opětovným vykreslením
+  // Vyčistíme SVG před opětovným vykreslením
+  d3.select("#chart").selectAll("*").remove();
 
-  // ⭐ DŮLEŽITÉ: Šířka se nyní počítá z AKTUALIZOVANÉ ŠÍŘKY SVG elementu
   const svgElement = document.getElementById("chart");
   const currentSvgWidth = svgElement.getBoundingClientRect().width;
 
-  // Marginy: Upravíme je podle toho, co zjistíme.
-  // Tyto marginy jsou PRO VLASTNÍ KRESLICÍ PLOCHU uvnitř SVG.
-  // Zvětšíme je na mobilu, aby se texty nevylévaly
   let margin;
   if (window.innerWidth < 500) {
-    margin = { top: 60, right: 15, bottom: 60, left: 25 }; // Znovu upravené marginy pro mobil
+    margin = { top: 60, right: 15, bottom: 60, left: 25 }; // Menší okraje pro mobil
   } else {
-    margin = { top: 60, right: 40, bottom: 60, left: 50 };
+    margin = { top: 60, right: 40, bottom: 60, left: 50 }; // Větší okraje pro desktop
   }
 
-  // ⭐ Width a Height grafu počítáme z AKTUALIZOVANÉ šířky SVG
   const width = currentSvgWidth - margin.left - margin.right;
   let heightRatio = window.innerWidth < 500 ? 1.3 : 0.75;
   const height = (currentSvgWidth * heightRatio) - margin.top - margin.bottom;
 
   // Nastavíme viewBox na základě dynamicky spočítaných rozměrů
-  // Toto je klíčové, aby se vnitřní obsah SVG správně škáloval
-  // viewbox by měl odrážet ŠÍŘKU A VÝŠKU, SE KTEROU D3 PRACUJE UVNITŘ `g` elementu
-  // + okraje, které chceme zachovat
   d3.select("#chart")
     .attr("viewBox", `0 0 ${currentSvgWidth} ${currentSvgWidth * heightRatio}`)
     .attr("preserveAspectRatio", "xMinYMin meet");
@@ -274,10 +256,8 @@ function drawChart() {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Dynamický rozsah osy X, začínáme dříve než první data, pro lepší zarovnání osy
   const minDate = d3.min(dataReal, d => d.date);
   const maxDate = d3.max(dataReal, d => d.date);
-  // Rozšíříme rozsah osy X ještě trochu více, aby popisky let byly pěkně uprostřed.
   const x = d3.scaleTime().domain([d3.timeMonth.offset(minDate, -2), d3.timeMonth.offset(maxDate, 2)]).range([0, width]);
   const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
 
@@ -290,7 +270,6 @@ function drawChart() {
     let adjustedY = yPos;
     const labelHeight = window.innerWidth < 500 ? 14 : 18;
 
-    // Přepracujeme logiku kolize popisků: Použijeme vertikální stack, pokud jsou blízko
     let collisions = 0;
     for (let i = 0; i < usedLabelPositions.length; i++) {
         if (Math.abs(usedLabelPositions[i] - adjustedY) < labelHeight) {
@@ -298,7 +277,7 @@ function drawChart() {
         }
     }
     if (collisions > 0) {
-        adjustedY -= (collisions * labelHeight); // Posunout nahoru o násobek kolizí
+        adjustedY -= (collisions * labelHeight);
     }
     usedLabelPositions.push(adjustedY);
 
@@ -330,14 +309,21 @@ function drawChart() {
     .selectAll("text")
     .style("text-anchor", "middle")
     .style("font-size", window.innerWidth < 500 ? "10px" : "14px")
-    .attr("dy", "1em");
+    .attr("dy", "1em"); // Posun textu osy X dolů
 
+  // Y-osa mřížka (bez čísel)
+  svgGroup.append("g")
+    .attr("class", "y-grid")
+    .call(
+      d3.axisLeft(y)
+        .tickSize(-width)
+        .tickFormat("")
+    )
+    .selectAll("line")
+    .attr("stroke", "#ddd")
+    .attr("stroke-dasharray", "2,2");
+  svgGroup.selectAll(".y-grid path").remove();
 
-  const area = d3.area()
-    .x(d => x(d.date))
-    .y0(height)
-    .y1(d => y(d.Inflace))
-    .curve(d3.curveMonotoneX);
 
   // Pozadí vlád
   svgGroup.append("rect")
@@ -363,8 +349,6 @@ function drawChart() {
     .attr("opacity", 0.05);
 
   // Nadpisy vlád
-  // Vypočítáme pozice pro nadpisy "Babišova vláda" a "Fialova vláda" dynamicky
-  // Pozice by měly být relativní k SVGGroup, ne k celému SVG
   const babisStart = parseDate("2017-12");
   const babisEnd = parseDate("2021-12");
   const fialaStart = parseDate("2021-12");
@@ -373,7 +357,7 @@ function drawChart() {
   const babisMidX = x(new Date((babisStart.getTime() + babisEnd.getTime()) / 2));
   const fialaMidX = x(new Date((fialaStart.getTime() + fialaEnd.getTime()) / 2));
 
-  const titleY = -margin.top / 2 + (window.innerWidth < 500 ? 15 : 20); // Mírně posunout dolů pro mobil
+  const titleY = -margin.top / 2 + (window.innerWidth < 500 ? 15 : 20);
 
   svgGroup.append("text")
     .attr("x", babisMidX)
@@ -397,20 +381,7 @@ function drawChart() {
     .style("letter-spacing", "1px")
     .attr("text-anchor", "middle");
 
-  svgGroup.append("g")
-    .attr("class", "y-grid")
-    .call(
-      d3.axisLeft(y)
-        .tickSize(-width)
-        .tickFormat("")
-    )
-    .selectAll("line")
-    .attr("stroke", "#ddd")
-    .attr("stroke-dasharray", "2,2");
-
-  svgGroup.selectAll(".y-grid path").remove();
-
-  // Babišova čára
+  // Babišova čára (reálná data)
   const line = d3.line().x(d => x(d.date)).y(d => y(d.Inflace)).curve(d3.curveMonotoneX);
   svgGroup.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
 
@@ -440,6 +411,7 @@ function drawChart() {
     window.innerWidth < 500 ? 4 : 8
   );
 
+  // Průhledná plocha pro kreslení a interakci
   const drawingArea = svgGroup.append("rect")
     .attr("class", "drawing-overlay")
     .attr("x", x(parseDate("2021-12")))
@@ -449,117 +421,140 @@ function drawChart() {
     .attr("fill", "transparent")
     .style("cursor", "crosshair");
 
+  // --- INTERACTION LOGIC (Mouse & Touch) ---
 
-  // ⭐ ZMĚNA: Listenery pro myš a dotyk jsou teď na 'drawingArea' (průhledný obdélník)
-  // To zajistí, že události se zachytávají pouze v oblasti, kde má uživatel kreslit.
-  drawingArea
-    .on("mousedown", (event) => {
-      if (evaluated) return;
-      if (event.button === 2) return;
+  // Funkce pro start interakce (mousedown / touchstart)
+  function handleInteractionStart(event, element) {
+    if (evaluated) return;
+    // Ignorujeme pravé tlačítko myši nebo multi-touch
+    if (event.button === 2 || (event.touches && event.touches.length > 1)) return;
 
-      isDrawing = true;
-      hasDrawn = false;
-      userPoints = [];
-      userPath.attr("d", null);
-      svgGroup.selectAll("circle.user-dot").remove();
-      svgGroup.selectAll("text").filter(function () {
-        return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
-      }).remove();
-      usedLabelPositions = [];
+    isDrawing = true;
+    hasDrawn = false;
+    userPoints = [];
+    userPath.attr("d", null);
+    svgGroup.selectAll("circle.user-dot").remove();
+    svgGroup.selectAll("text").filter(function () {
+      return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+    }).remove();
+    usedLabelPositions = []; // Reset usedLabelPositions for new drawing
 
-      const start = x(parseDate("2021-12"));
-      const end = x(parseDate("2025-05"));
-      yellowOverlay
-        .style("display", "block")
-        .attr("x", start)
-        .attr("width", end - start);
-    })
+    const start = x(parseDate("2021-12"));
+    const end = x(parseDate("2025-05"));
+    yellowOverlay
+      .style("display", "block")
+      .attr("x", start)
+      .attr("width", end - start);
+  }
 
-    .on("mouseup", () => {
-      if (!isDrawing || evaluated) return;
-      isDrawing = false;
-      hasDrawn = true;
+  // Funkce pro pohyb interakce (mousemove / touchmove)
+  function handleInteractionMove(event, element) {
+    if (!isDrawing || evaluated) return;
 
-      const lastPoint = userPoints.at(-1);
+    const [px, py] = d3.pointer(event, element); // d3.pointer automaticky zohlední myš/dotyk
+    const xDate = x.invert(px);
+    const yVal = y.invert(py);
+
+    if (
+      xDate >= parseDate("2021-12") &&
+      xDate <= parseDate("2025-05") &&
+      yVal >= 0 &&
+      yVal <= 25
+    ) {
+      userPoints.push([xDate, yVal]);
+
+      userPath.attr("d",
+        d3.line()
+          .x(d => x(d[0]))
+          .y(d => y(d[1]))
+          .curve(d3.curveMonotoneX)(userPoints)
+      );
+
+      const lastDate = userPoints.at(-1)[0];
       const endDate = parseDate("2025-05");
-      const lastX = x(lastPoint?.[0]);
+      const lastX = x(lastDate);
       const endX = x(endDate);
 
-      if (lastPoint && lastX >= endX - 5) {
-        document.getElementById("evaluate").disabled = false;
+      if (lastX >= endX - 5) {
         yellowOverlay.style("display", "none");
+        document.getElementById("evaluate").disabled = false;
       } else {
+        yellowOverlay
+          .style("display", "block")
+          .attr("x", lastX)
+          .attr("width", endX - lastX);
         document.getElementById("evaluate").disabled = true;
-        yellowOverlay.style("display", "block");
       }
+    }
+  }
+
+  // Funkce pro konec interakce (mouseup / touchend / mouseleave)
+  function handleInteractionEnd() {
+    if (!isDrawing || evaluated) return;
+    isDrawing = false;
+    hasDrawn = true;
+
+    const lastPoint = userPoints.at(-1);
+    const endDate = parseDate("2025-05");
+    const lastX = x(lastPoint?.[0]);
+    const endX = x(endDate);
+
+    if (lastPoint && lastX >= endX - 5) {
+      document.getElementById("evaluate").disabled = false;
+      yellowOverlay.style("display", "none");
+    } else {
+      document.getElementById("evaluate").disabled = true;
+      yellowOverlay.style("display", "block");
+    }
+  }
+
+  // Připojení event listenerů k drawingArea
+  drawingArea
+    .on("mousedown", function(event) {
+        // Voláme hlavní handler se samotným event objektem a DOM elementem
+        handleInteractionStart(event, this);
     })
-
-    .on("mousemove", function (event) {
-      if (!isDrawing || evaluated) return;
-
-      const [px, py] = d3.pointer(event, this); // ⭐ Zde je klíčová změna: 'this' odkazuje na 'drawingArea'
-      const xDate = x.invert(px);
-      const yVal = y.invert(py);
-
-      if (
-        xDate >= parseDate("2021-12") &&
-        xDate <= parseDate("2025-05") &&
-        yVal >= 0 &&
-        yVal <= 25
-      ) {
-        userPoints.push([xDate, yVal]);
-
-        userPath.attr("d",
-          d3.line()
-            .x(d => x(d[0]))
-            .y(d => y(d[1]))
-            .curve(d3.curveMonotoneX)(userPoints)
-        );
-
-        const lastDate = userPoints.at(-1)[0];
-        const endDate = parseDate("2025-05");
-        const lastX = x(lastDate);
-        const endX = x(endDate);
-
-        if (lastX >= endX - 5) {
-          yellowOverlay.style("display", "none");
-          document.getElementById("evaluate").disabled = false;
-        } else {
-          yellowOverlay
-            .style("display", "block")
-            .attr("x", lastX)
-            .attr("width", endX - lastX);
-          document.getElementById("evaluate").disabled = true;
-        }
-      }
+    .on("mouseup", handleInteractionEnd)
+    .on("mousemove", function(event) {
+        handleInteractionMove(event, this);
     })
-    .on("mouseleave", function () {
-      if (!isDrawing || evaluated) return;
+    .on("mouseleave", handleInteractionEnd); // mouseleave také ukončí kreslení
 
-      const lastPoint = userPoints.at(-1);
-      const endDate = parseDate("2025-05");
-      const lastX = x(lastPoint?.[0]);
-      const endX = x(endDate);
+  // Připojení touch event listenerů k nativnímu DOM elementu
+  const drawingAreaNode = drawingArea.node();
 
-      if (lastPoint && lastX >= endX - 5) {
-        yellowOverlay.style("display", "none");
-        document.getElementById("evaluate").disabled = false;
-      }
-    });
+  drawingAreaNode.addEventListener("touchstart", function(event) {
+    event.preventDefault(); // Zabrání posouvání stránky
+    handleInteractionStart(event.touches[0], this); // Předáme první dotyk jako event
+  }, { passive: false });
 
+  drawingAreaNode.addEventListener("touchmove", function(event) {
+    event.preventDefault(); // Zabrání posouvání stránky
+    if (isDrawing) { // Kreslíme, jen pokud uživatel začal kreslit
+        handleInteractionMove(event.touches[0], this); // Předáme první dotyk jako event
+    }
+  }, { passive: false });
+
+  drawingAreaNode.addEventListener("touchend", function(event) {
+    event.preventDefault(); // Zabrání výchozímu chování
+    handleInteractionEnd();
+  }, { passive: false });
+
+  // Funkce pro vyhodnocení tipu
   function evaluateTip() {
     if (evaluated || !hasDrawn) return;
     evaluated = true;
     document.getElementById("evaluate").disabled = true;
 
-      fialaLine = svgGroup.append("path") // Kreslíme do svgGroup
+    // Fialova čára – s animací
+    fialaLine = svgGroup.append("path")
       .datum(dataFiala)
       .attr("class", "true-line")
       .attr("d", line);
 
-      const totalLength = fialaLine.node().getTotalLength();
-
-      fialaLine
+    // Animace čáry
+    const totalLength = fialaLine.node().getTotalLength();
+    fialaLine
       .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
       .attr("stroke-dashoffset", totalLength)
       .transition()
@@ -586,21 +581,21 @@ function drawChart() {
     const fialaTextXOffset = window.innerWidth < 500 ? 10 : 14;
     const userTextXOffset = closeY ? (window.innerWidth < 500 ? 12 : 15) : (window.innerWidth < 500 ? 20 : 25);
 
-    svgGroup.append("circle") // Kreslíme do svgGroup
+    svgGroup.append("circle")
       .attr("cx", fialaX)
       .attr("cy", fialaY)
       .attr("r", window.innerWidth < 500 ? 4 : 5)
       .attr("fill", "#000")
       .classed("fiala-end-label", true);
 
-    svgGroup.append("circle") // Kreslíme do svgGroup
+    svgGroup.append("circle")
       .attr("cx", userX)
       .attr("cy", userY)
       .attr("r", window.innerWidth < 500 ? 4 : 5)
       .attr("fill", "#1e88e5")
       .classed("user-dot", true);
 
-    svgGroup.append("text") // Kreslíme do svgGroup
+    svgGroup.append("text")
       .attr("x", fialaX + fialaTextXOffset)
       .attr("y", fialaY + fialaTextYOffset - (window.innerWidth < 500 ? 8 : 10))
       .attr("text-anchor", "start")
@@ -610,7 +605,7 @@ function drawChart() {
       .text(`${endFiala.Inflace.toFixed(1)} %`)
       .classed("fiala-end-label", true);
 
-    svgGroup.append("text") // Kreslíme do svgGroup
+    svgGroup.append("text")
       .attr("x", userX + userTextXOffset)
       .attr("y", userY + userTextYOffset - (window.innerWidth < 500 ? 8 : 10))
       .attr("text-anchor", "start")
@@ -621,6 +616,7 @@ function drawChart() {
       .classed("user-dot", true);
   }
 
+  // Funkce pro resetování kreslení
   function resetDrawing() {
     isDrawing = false;
     hasDrawn = false;
@@ -641,35 +637,20 @@ function drawChart() {
     yellowOverlay.style("display", "none");
   }
 
-  // ⭐ DŮLEŽITÉ: Touch události nyní přímo na 'drawingArea'
-  drawingArea.on("touchstart", function(event) {
-    event.preventDefault();
-    d3.select(this).on("mousedown").call(this, event.touches[0]);
-  }, { passive: false });
-
-  drawingArea.on("touchmove", function(event) {
-    event.preventDefault();
-    if (isDrawing) {
-        d3.select(this).on("mousemove").call(this, event.touches[0]);
-    }
-  }, { passive: false });
-
-  drawingArea.on("touchend", function(event) {
-    event.preventDefault();
-    d3.select(this).on("mouseup").call(this, event);
-  }, { passive: false });
-
+  // Globální funkce pro tlačítka (dostupné z HTML onclick atributů)
   window.resetDrawing = resetDrawing;
   window.evaluateTip = evaluateTip;
 
 } // Konec drawChart() funkce
 
+// Vykreslit graf při načtení stránky
 drawChart();
 
+// Přidat listener pro změnu velikosti okna pro responzivitu
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(drawChart, 250);
+  resizeTimer = setTimeout(drawChart, 250); // Zpoždění pro zamezení mnoha vykreslení
 });
 
 </script>
