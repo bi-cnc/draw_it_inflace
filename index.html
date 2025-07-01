@@ -449,27 +449,196 @@ function drawChart() {
     .attr("fill", "transparent")
     .style("cursor", "crosshair");
 
-  // Všechny event listenery na drawingArea
+
+  // ⭐ ZMĚNA: Listenery pro myš a dotyk jsou teď na 'drawingArea' (průhledný obdélník)
+  // To zajistí, že události se zachytávají pouze v oblasti, kde má uživatel kreslit.
   drawingArea
     .on("mousedown", (event) => {
-      // ... (zbytek mousedown handleru, beze změny) ...
+      if (evaluated) return;
+      if (event.button === 2) return;
+
+      isDrawing = true;
+      hasDrawn = false;
+      userPoints = [];
+      userPath.attr("d", null);
+      svgGroup.selectAll("circle.user-dot").remove();
+      svgGroup.selectAll("text").filter(function () {
+        return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+      }).remove();
+      usedLabelPositions = [];
+
+      const start = x(parseDate("2021-12"));
+      const end = x(parseDate("2025-05"));
+      yellowOverlay
+        .style("display", "block")
+        .attr("x", start)
+        .attr("width", end - start);
     })
+
     .on("mouseup", () => {
-      // ... (zbytek mouseup handleru, beze změny) ...
+      if (!isDrawing || evaluated) return;
+      isDrawing = false;
+      hasDrawn = true;
+
+      const lastPoint = userPoints.at(-1);
+      const endDate = parseDate("2025-05");
+      const lastX = x(lastPoint?.[0]);
+      const endX = x(endDate);
+
+      if (lastPoint && lastX >= endX - 5) {
+        document.getElementById("evaluate").disabled = false;
+        yellowOverlay.style("display", "none");
+      } else {
+        document.getElementById("evaluate").disabled = true;
+        yellowOverlay.style("display", "block");
+      }
     })
+
     .on("mousemove", function (event) {
-      // ... (zbytek mousemove handleru, beze změny) ...
+      if (!isDrawing || evaluated) return;
+
+      const [px, py] = d3.pointer(event, this); // ⭐ Zde je klíčová změna: 'this' odkazuje na 'drawingArea'
+      const xDate = x.invert(px);
+      const yVal = y.invert(py);
+
+      if (
+        xDate >= parseDate("2021-12") &&
+        xDate <= parseDate("2025-05") &&
+        yVal >= 0 &&
+        yVal <= 25
+      ) {
+        userPoints.push([xDate, yVal]);
+
+        userPath.attr("d",
+          d3.line()
+            .x(d => x(d[0]))
+            .y(d => y(d[1]))
+            .curve(d3.curveMonotoneX)(userPoints)
+        );
+
+        const lastDate = userPoints.at(-1)[0];
+        const endDate = parseDate("2025-05");
+        const lastX = x(lastDate);
+        const endX = x(endDate);
+
+        if (lastX >= endX - 5) {
+          yellowOverlay.style("display", "none");
+          document.getElementById("evaluate").disabled = false;
+        } else {
+          yellowOverlay
+            .style("display", "block")
+            .attr("x", lastX)
+            .attr("width", endX - lastX);
+          document.getElementById("evaluate").disabled = true;
+        }
+      }
     })
     .on("mouseleave", function () {
-      // ... (zbytek mouseleave handleru, beze změny) ...
+      if (!isDrawing || evaluated) return;
+
+      const lastPoint = userPoints.at(-1);
+      const endDate = parseDate("2025-05");
+      const lastX = x(lastPoint?.[0]);
+      const endX = x(endDate);
+
+      if (lastPoint && lastX >= endX - 5) {
+        yellowOverlay.style("display", "none");
+        document.getElementById("evaluate").disabled = false;
+      }
     });
 
   function evaluateTip() {
-    // ... (evaluateTip funkce, beze změny) ...
+    if (evaluated || !hasDrawn) return;
+    evaluated = true;
+    document.getElementById("evaluate").disabled = true;
+
+      fialaLine = svgGroup.append("path") // Kreslíme do svgGroup
+      .datum(dataFiala)
+      .attr("class", "true-line")
+      .attr("d", line);
+
+      const totalLength = fialaLine.node().getTotalLength();
+
+      fialaLine
+      .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
+      .attr("stroke-dashoffset", totalLength)
+      .transition()
+      .duration(1500)
+      .ease(d3.easeCubicInOut)
+      .attr("stroke-dashoffset", 0);
+
+    document.getElementById("truth").style.display = "block";
+
+    const endFiala = dataFiala[dataFiala.length - 1];
+    const lastUserPoint = userPoints.at(-1);
+
+    const fialaY = y(endFiala.Inflace);
+    const userY = y(lastUserPoint[1]);
+    const fialaX = x(endFiala.date);
+    const userX = x(lastUserPoint[0]);
+
+    const minYGap = window.innerWidth < 500 ? 12 : 16;
+    const closeY = Math.abs(fialaY - userY) < minYGap;
+
+    const fialaTextYOffset = closeY ? -minYGap / 2 : 0;
+    const userTextYOffset = closeY ? minYGap / 2 : 0;
+
+    const fialaTextXOffset = window.innerWidth < 500 ? 10 : 14;
+    const userTextXOffset = closeY ? (window.innerWidth < 500 ? 12 : 15) : (window.innerWidth < 500 ? 20 : 25);
+
+    svgGroup.append("circle") // Kreslíme do svgGroup
+      .attr("cx", fialaX)
+      .attr("cy", fialaY)
+      .attr("r", window.innerWidth < 500 ? 4 : 5)
+      .attr("fill", "#000")
+      .classed("fiala-end-label", true);
+
+    svgGroup.append("circle") // Kreslíme do svgGroup
+      .attr("cx", userX)
+      .attr("cy", userY)
+      .attr("r", window.innerWidth < 500 ? 4 : 5)
+      .attr("fill", "#1e88e5")
+      .classed("user-dot", true);
+
+    svgGroup.append("text") // Kreslíme do svgGroup
+      .attr("x", fialaX + fialaTextXOffset)
+      .attr("y", fialaY + fialaTextYOffset - (window.innerWidth < 500 ? 8 : 10))
+      .attr("text-anchor", "start")
+      .style("fill", "#000")
+      .style("font-weight", "bold")
+      .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+      .text(`${endFiala.Inflace.toFixed(1)} %`)
+      .classed("fiala-end-label", true);
+
+    svgGroup.append("text") // Kreslíme do svgGroup
+      .attr("x", userX + userTextXOffset)
+      .attr("y", userY + userTextYOffset - (window.innerWidth < 500 ? 8 : 10))
+      .attr("text-anchor", "start")
+      .style("fill", "#1e88e5")
+      .style("font-weight", "bold")
+      .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+      .text(`${lastUserPoint[1].toFixed(1)} %`)
+      .classed("user-dot", true);
   }
 
   function resetDrawing() {
-    // ... (resetDrawing funkce, beze změny) ...
+    isDrawing = false;
+    hasDrawn = false;
+    evaluated = false;
+    userPoints = [];
+    userPath.attr("d", null);
+    if (fialaLine) fialaLine.remove();
+
+    svgGroup.selectAll("circle.user-dot").remove();
+    svgGroup.selectAll("text").filter(function() {
+      return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+    }).remove();
+
+    usedLabelPositions = [];
+    document.getElementById("truth").style.display = "none";
+    document.getElementById("evaluate").disabled = true;
+    svgGroup.selectAll(".fiala-end-label").remove();
+    yellowOverlay.style("display", "none");
   }
 
   // ⭐ DŮLEŽITÉ: Touch události nyní přímo na 'drawingArea'
