@@ -10,15 +10,14 @@
     font-family: 'Segoe UI', sans-serif;
     background: #f9fafb;
     color: #222;
-    margin: 0 auto;
+    margin: 0;
     padding: 20px;
-    max-width: 620px;
     }
 
     @media screen and (min-width: 621px) {
     body {
         max-width: 620px;
-        margin: 0 auto;
+        margin: 0 auto; /* centrování jen na větších obrazovkách */
     }
     }
 
@@ -34,12 +33,17 @@
       margin-bottom: 30px;
     }
 
+    .chart-wrapper {
+      margin-left: -20px;
+      margin-right: -20px;
+    }
+
     svg {
-    width: 100%;
-    height: auto;
-    display: block;
-    max-width: 100%;
-    min-height: 300px; /* 🛡 Pojistka pro mobil, aby nebyl příliš nízký */
+      width: 100%;
+      height: auto;
+      display: block;
+      max-width: 100%;
+      min-height: 300px;
     }
 
     .true-line {
@@ -93,20 +97,21 @@
       font-size: 1.1rem;
       display: none;
     }
-
   </style>
 </head>
 <body>
 
-<h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
-<p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
+  <h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
+  <p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládnul Andrej Babiš.</p>
 
-<svg id="chart" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+  <div class="chart-wrapper">
+    <svg id="chart" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet"></svg>
+  </div>
 
-<div class="btn-container">
-  <button onclick="resetDrawing()">Zkusit znovu</button>
-  <button id="evaluate" onclick="evaluateTip()" disabled>Vyhodnotit můj tip</button>
-</div>
+  <div class="btn-container">
+    <button onclick="resetDrawing()">Zkusit znovu</button>
+    <button id="evaluate" onclick="evaluateTip()" disabled>Vyhodnotit můj tip</button>
+  </div>
 
 <div id="truth">
   Skutečný vývoj inflace v ČR byl následující:
