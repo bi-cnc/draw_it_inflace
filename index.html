@@ -237,11 +237,11 @@ function drawChart() {
   const currentSvgWidth = svgElement.getBoundingClientRect().width;
 
   let margin;
-  if (window.innerWidth < 500) {
-    margin = { top: 60, right: 25, bottom: 60, left: 35 };
-  } else {
-    margin = { top: 60, right: 50, bottom: 60, left: 60 };
-  }
+    if (window.innerWidth < 500) {
+    margin = { top: 60, right: 45, bottom: 60, left: 35 }; // 🆙 více místa napravo na mobilu
+    } else {
+    margin = { top: 60, right: 70, bottom: 60, left: 60 }; // 🆙 více místa napravo i na desktopu
+    }
 
   const width = currentSvgWidth - margin.left - margin.right;
   let heightRatio = window.innerWidth < 500 ? 1.3 : 0.75;
