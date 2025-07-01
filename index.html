@@ -70,9 +70,9 @@
       display: none;
     }
     #chart {
-  width: 100%;
-  max-width: 800px;
+  max-width: 640px;
   margin: 0 auto;
+  overflow: visible;
     }
   </style>
 </head>
@@ -200,14 +200,13 @@ dataReal.forEach(d => d.date = parseDate(d.Datum));
 const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
 const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
-const margin = {top: 30, right: 30, bottom: 50, left: 50};
-const fullWidth = document.getElementById("chart").clientWidth;
-const width = fullWidth - margin.left - margin.right;
-const height = 400 - margin.top - margin.bottom;
+const margin = { top: 100, right: 30, bottom: 40, left: 30 };
+const width = 580;
+const height = 400;
 
 const svg = d3.select("#chart")
   .append("svg")
-  .attr("viewBox", `0 0 ${width + 40} ${height}`)  // <-- TADY
+  .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
   .attr("preserveAspectRatio", "xMidYMid meet")
   .style("width", "100%")
   .style("height", "auto")
@@ -250,7 +249,7 @@ function drawLabelWithDot(xPos, yPos, color, text, align = "start", bold = false
 
 // Osy
 svg.append("g")
-  .attr("transform", translate(0,${height}))
+  .attr("transform", `translate(0,${height})`)
   .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y")).ticks(10))
   .selectAll("text")
   .style("text-anchor", "middle")
@@ -288,10 +287,11 @@ svg.append("rect")
   .attr("opacity", 0.05);
 
 
-// Babišova vláda – větší, tučné, s rozestupem
+// Babišova vláda (doprostřed svého období)
 svg.append("text")
-  .attr("x", x(parseDate("2019-01")))
-  .attr("y", 30)
+  .attr("x", (x(parseDate("2017-12")) + x(parseDate("2021-12"))) / 2)
+  .attr("y", -20) // více prostoru nahoře
+  .attr("text-anchor", "middle")
   .text("BABIŠOVA VLÁDA")
   .attr("class", "label")
   .style("fill", "#282660")
@@ -299,10 +299,11 @@ svg.append("text")
   .style("font-weight", "bold")
   .style("letter-spacing", "2px");
 
-// Fialova vláda – větší, tučné, s rozestupem
+// Fialova vláda
 svg.append("text")
-  .attr("x", x(parseDate("2023-01")))
-  .attr("y", 30)
+  .attr("x", (x(parseDate("2021-12")) + x(parseDate("2025-05"))) / 2)
+  .attr("y", -20)
+  .attr("text-anchor", "middle")
   .text("FIALOVA VLÁDA")
   .attr("class", "label")
   .style("fill", "#1e88e5")
@@ -336,7 +337,7 @@ drawLabelWithDot(
   x(startBabis.date),
   y(startBabis.Inflace),
   "#000", // barva tečky
-  ${startBabis.Inflace.toFixed(1)} %,
+  `${startBabis.Inflace.toFixed(1)} %`,
   "start",
   true,
   true // černý text
@@ -346,7 +347,7 @@ drawLabelWithDot(
   x(endBabis.date),
   y(endBabis.Inflace),
   "#000",
-  ${endBabis.Inflace.toFixed(1)} %,
+  `${endBabis.Inflace.toFixed(1)} %`,
   "start",
   true,
   true,
@@ -472,7 +473,7 @@ function evaluateTip() {
     const totalLength = fialaLine.node().getTotalLength();
 
     fialaLine
-    .attr("stroke-dasharray", ${totalLength} ${totalLength})
+    .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
     .attr("stroke-dashoffset", totalLength)
     .transition()
     .duration(1500) // ⏱ délka animace v ms
@@ -524,7 +525,7 @@ function evaluateTip() {
     .style("fill", "#000")
     .style("font-weight", "bold")
     .style("font-size", "14px")
-    .text(${endFiala.Inflace.toFixed(1)} %)
+    .text(`${endFiala.Inflace.toFixed(1)} %`)
     .classed("fiala-end-label", true);
 
   // Popisek tipu
@@ -535,7 +536,7 @@ function evaluateTip() {
     .style("fill", "#1e88e5")
     .style("font-weight", "bold")
     .style("font-size", "14px")
-    .text(${lastUserPoint[1].toFixed(1)} %)
+    .text(`${lastUserPoint[1].toFixed(1)} %`)
     .classed("user-dot", true);
 }
 
@@ -583,3 +584,4 @@ window.addEventListener("mouseup", () => {
 
 </body>
 </html>
+
