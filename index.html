@@ -397,8 +397,6 @@ function drawChart() {
     "start",
     true,
     true,
-    window.innerWidth < 500 ? 10 : 15, // Kladný xOffset pro posun doprava od tečky
-    window.innerWidth < 500 ? -12 : -15 // ⭐ NOVÝ PARAMETR: záporný yOffset pro posun textu NAHORU
   );
 
   // ⭐ ZDE JE KLÍČOVÁ ZMĚNA pro popisek na konci Babišovy vlády
@@ -410,7 +408,6 @@ function drawChart() {
     "end", // ⭐ Změněno na "end" (text se zarovná na konec, tedy doleva od xPos)
     true,
     true,
-    window.innerWidth < 500 ? -10 : -15 // ⭐ Zvětšený záporný offset pro posun doleva
   );
 
   // Průhledná plocha pro kreslení a interakci
