@@ -210,7 +210,8 @@ const svg = d3.select("#chart")
   .attr("viewBox", `0 0 ${width} ${height}`)
   .attr("preserveAspectRatio", "xMidYMid meet")
   .style("width", "100%")
-  .style("height", "auto");
+  .style("height", "auto")
+  .style("overflow", "visible");
 
 const x = d3.scaleTime().domain(d3.extent(dataReal, d => d.date)).range([0, width]);
 const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
