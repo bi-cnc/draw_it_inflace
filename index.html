@@ -394,10 +394,11 @@ function drawChart() {
     y(startBabis.Inflace),
     "#000",
     `${startBabis.Inflace.toFixed(1)} %`,
-    "end",
+    "start",
     true,
     true,
-    window.innerWidth < 500 ? -4 : -8
+    window.innerWidth < 500 ? 10 : 15, // Kladný xOffset pro posun doprava od tečky
+    window.innerWidth < 500 ? -12 : -15 // ⭐ NOVÝ PARAMETR: záporný yOffset pro posun textu NAHORU
   );
 
   // ⭐ ZDE JE KLÍČOVÁ ZMĚNA pro popisek na konci Babišovy vlády
