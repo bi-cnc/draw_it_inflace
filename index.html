@@ -238,9 +238,11 @@ function drawChart() {
 
   let margin;
   if (window.innerWidth < 500) {
-    margin = { top: 60, right: 15, bottom: 60, left: 25 }; // Menší okraje pro mobil
+    // ⭐ Zvětšené okraje pro mobil
+    margin = { top: 60, right: 25, bottom: 60, left: 35 };
   } else {
-    margin = { top: 60, right: 40, bottom: 60, left: 50 }; // Větší okraje pro desktop
+    // ⭐ Zvětšené okraje pro desktop
+    margin = { top: 60, right: 50, bottom: 60, left: 60 };
   }
 
   const width = currentSvgWidth - margin.left - margin.right;
@@ -508,15 +510,14 @@ function drawChart() {
     }
   }
 
-  // ⭐ DŮLEŽITÁ ZMĚNA ZDE: Jak se předává event pro myší události!
   // Myš: 'event' objekt je již kompletní, předáme ho přímo.
   drawingArea
     .on("mousedown", function(event) {
-        handleInteractionStart(event, this); // ⭐ Opraveno: 'event' místo 'event.touches[0]'
+        handleInteractionStart(event, this);
     })
     .on("mouseup", handleInteractionEnd)
     .on("mousemove", function(event) {
-        handleInteractionMove(event, this); // ⭐ Opraveno: 'event' místo 'event.touches[0]'
+        handleInteractionMove(event, this);
     })
     .on("mouseleave", handleInteractionEnd); // mouseleave také ukončí kreslení
 
