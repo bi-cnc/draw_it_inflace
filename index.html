@@ -508,19 +508,19 @@ function drawChart() {
     }
   }
 
-  // Připojení event listenerů k drawingArea
+  // ⭐ DŮLEŽITÁ ZMĚNA ZDE: Jak se předává event pro myší události!
+  // Myš: 'event' objekt je již kompletní, předáme ho přímo.
   drawingArea
     .on("mousedown", function(event) {
-        // Voláme hlavní handler se samotným event objektem a DOM elementem
-        handleInteractionStart(event, this);
+        handleInteractionStart(event, this); // ⭐ Opraveno: 'event' místo 'event.touches[0]'
     })
     .on("mouseup", handleInteractionEnd)
     .on("mousemove", function(event) {
-        handleInteractionMove(event, this);
+        handleInteractionMove(event, this); // ⭐ Opraveno: 'event' místo 'event.touches[0]'
     })
     .on("mouseleave", handleInteractionEnd); // mouseleave také ukončí kreslení
 
-  // Připojení touch event listenerů k nativnímu DOM elementu
+  // Touch: 'event.touches[0]' obsahuje data prvního dotyku, předáme je.
   const drawingAreaNode = drawingArea.node();
 
   drawingAreaNode.addEventListener("touchstart", function(event) {
