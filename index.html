@@ -94,6 +94,14 @@
       background-color: #1565c0;
     }
 
+    /* --- NOVÝ STYL PRO NEAKTIVNÍ TLAČÍTKO --- */
+    button:disabled {
+      background-color: #cccccc; /* Šedé pozadí */
+      color: #666666; /* Tmavší šedý text */
+      cursor: not-allowed; /* Ikona zakázaného kurzoru */
+    }
+    /* --- KONEC NOVÉHO STYLU --- */
+
     #truth {
       margin-top: 25px;
       padding: 15px;
@@ -445,6 +453,9 @@ function handleInteractionStart(event, element) {
     .style("display", "block")
     .attr("x", start)
     .attr("width", end - start);
+
+  // Zajistí, že tlačítko bude disabled na začátku kreslení
+  document.getElementById("evaluate").disabled = true;
 }
 
   // Funkce pro pohyb interakce (mousemove / touchmove)
@@ -475,15 +486,16 @@ function handleInteractionStart(event, element) {
       const lastX = x(lastDate);
       const endX = x(endDate);
 
+      // Zde se kontroluje, zda uživatel dokreslil až na konec
       if (lastX >= endX - 5) {
         yellowOverlay.style("display", "none");
-        document.getElementById("evaluate").disabled = false;
+        document.getElementById("evaluate").disabled = false; // Tlačítko se aktivuje
       } else {
         yellowOverlay
           .style("display", "block")
           .attr("x", lastX)
           .attr("width", endX - lastX);
-        document.getElementById("evaluate").disabled = true;
+        document.getElementById("evaluate").disabled = true; // Tlačítko zůstane disabled
       }
     }
   }
@@ -496,7 +508,8 @@ function handleInteractionStart(event, element) {
 
     const lastPoint = userPoints.at(-1);
     const endDate = parseDate("2025-05");
-    const lastX = x(lastPoint?.[0]);
+    // Kontrola, zda userPoints není prázdné
+    const lastX = lastPoint ? x(lastPoint[0]) : -Infinity;
     const endX = x(endDate);
 
     if (lastPoint && lastX >= endX - 5) {
@@ -506,6 +519,7 @@ function handleInteractionStart(event, element) {
       document.getElementById("evaluate").disabled = true;
       yellowOverlay.style("display", "block");
     }
+    document.body.style.overflow = "auto"; // ✅ Zpět scroll
   }
 
   // Myš: 'event' objekt je již kompletní, předáme ho přímo.
@@ -631,9 +645,10 @@ function handleInteractionStart(event, element) {
 
     usedLabelPositions = [];
     document.getElementById("truth").style.display = "none";
-    document.getElementById("evaluate").disabled = true;
+    document.getElementById("evaluate").disabled = true; // Zajištění disabled stavu po resetu
     svgGroup.selectAll(".fiala-end-label").remove();
     yellowOverlay.style("display", "none");
+    document.body.style.overflow = "auto"; // ✅ Zpět scroll
   }
 
   // Globální funkce pro tlačítka (dostupné z HTML onclick atributů)
