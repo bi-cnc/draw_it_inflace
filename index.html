@@ -238,10 +238,8 @@ function drawChart() {
 
   let margin;
   if (window.innerWidth < 500) {
-    // ⭐ Zvětšené okraje pro mobil
     margin = { top: 60, right: 25, bottom: 60, left: 35 };
   } else {
-    // ⭐ Zvětšené okraje pro desktop
     margin = { top: 60, right: 50, bottom: 60, left: 60 };
   }
 
@@ -402,15 +400,16 @@ function drawChart() {
     window.innerWidth < 500 ? -4 : -8
   );
 
+  // ⭐ ZDE JE KLÍČOVÁ ZMĚNA pro popisek na konci Babišovy vlády
   drawLabelWithDot(
     x(endBabis.date),
     y(endBabis.Inflace),
     "#000",
     `${endBabis.Inflace.toFixed(1)} %`,
-    "start",
+    "end", // ⭐ Změněno na "end" (text se zarovná na konec, tedy doleva od xPos)
     true,
     true,
-    window.innerWidth < 500 ? 4 : 8
+    window.innerWidth < 500 ? -10 : -15 // ⭐ Zvětšený záporný offset pro posun doleva
   );
 
   // Průhledná plocha pro kreslení a interakci
