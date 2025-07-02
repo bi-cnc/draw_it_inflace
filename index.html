@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You Draw It – Inflace (Babiš vs Fiala)</title>
+  <title>You Draw It – Inflace a Reálná mzda</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     body {
@@ -44,6 +44,10 @@
       display: block;
       margin: 0 auto; /* Centrování SVG */
       min-height: 300px; /* Pojistka pro mobil, aby nebyl příliš nízký */
+    }
+
+    .chart-section {
+        margin-bottom: 50px; /* Mezera mezi grafy */
     }
 
     .true-line {
@@ -94,15 +98,19 @@
       background-color: #1565c0;
     }
 
-    /* --- NOVÝ STYL PRO NEAKTIVNÍ TLAČÍTKO --- */
     button:disabled {
-      background-color: #cccccc; /* Šedé pozadí */
-      color: #666666; /* Tmavší šedý text */
-      cursor: not-allowed; /* Ikona zakázaného kurzoru */
+      background-color: #cccccc;
+      color: #666666;
+      cursor: not-allowed;
     }
-    /* --- KONEC NOVÉHO STYLU --- */
 
-    #truth {
+    .zero-line {
+        stroke: #999;
+        stroke-width: 1.5;
+        stroke-dasharray: 5,5;
+    }
+
+    .truth-info { /* Změněno z #truth na class pro vícenásobné použití */
       margin-top: 25px;
       padding: 15px;
       background: #e8f0fe;
@@ -117,554 +125,684 @@
 </head>
 <body>
 
-<h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
-<p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládunul Andrej Babiš.</p>
+  <div class="chart-section">
+    <h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
+    <p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládunul Andrej Babiš.</p>
 
-<svg id="chart" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+    <svg id="chart-inflace" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
 
-<div class="btn-container">
-  <button onclick="resetDrawing()">Zkusit znovu</button>
-  <button id="evaluate" onclick="evaluateTip()" disabled>Vyhodnotit můj tip</button>
-</div>
+    <div class="btn-container">
+      <button id="reset-inflace">Zkusit znovu</button>
+      <button id="evaluate-inflace" disabled>Vyhodnotit můj tip</button>
+    </div>
 
-<div id="truth">
-  Skutečný vývoj inflace v ČR byl následující:
-  <ul>
-    <li><strong>2022:</strong> Inflace dosáhla vrcholu 18 % v září 2022.</li>
-    <li><strong>2023:</strong> Inflace výrazně klesla. V polovině roku pod 10 %, ke konci roku se pohybovala okolo 7 %.</li>
-    <li><strong>2024 a 2025:</strong> Stabilizace k rozmezí mezi 2 až 3 %.</li>
-  </ul>
-  Tento pokles následoval po velmi silném inflačním šoku v roce 2022 v důsledku války na Ukrajině a následné energetické krizi.
-</div>
+    <div id="truth-inflace" class="truth-info">
+      Skutečný vývoj inflace v ČR byl následující:
+      <ul>
+        <li><strong>2022:</strong> Inflace dosáhla vrcholu 18 % v září 2022.</li>
+        <li><strong>2023:</strong> Inflace výrazně klesla. V polovině roku pod 10 %, ke konci roku se pohybovala okolo 7 %.</li>
+        <li><strong>2024 a 2025:</strong> Stabilizace k rozmezí mezi 2 až 3 %.</li>
+      </ul>
+      Tento pokles následoval po velmi silném inflačním šoku v roce 2022 v důsledku války na Ukrajině a následné energetické krizi.
+    </div>
+  </div>
+
+  <hr style="max-width: 620px; margin: 40px auto; border: 0; border-top: 1px dashed #ccc;"> <div class="chart-section">
+    <h2>Jak se podle vás vyvíjel růst reálné mzdy za vlády Petra Fialy?</h2>
+    <p>Porovnejte svůj odhad s reálným vývojem reálné mzdy od prosince 2021. Předtím vládunul Andrej Babiš.</p>
+
+    <svg id="chart-mzda" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+    <div class="btn-container">
+      <button id="reset-mzda">Zkusit znovu</button>
+      <button id="evaluate-mzda" disabled>Vyhodnotit můj tip</button>
+    </div>
+
+    <div id="truth-mzda" class="truth-info">
+      Skutečný vývoj **růstu reálné mzdy** v ČR byl následující:
+      <ul>
+        <li><strong>2022:</strong> Reálné mzdy výrazně klesaly, nejvíce v Q2 a Q3.</li>
+        <li><strong>2023:</strong> Pokles se zpomalil, ale pokračoval po většinu roku. K mírnému růstu došlo až ke konci roku.</li>
+        <li><strong>2024 a 2025:</strong> Reálné mzdy opět rostou, což kompenzuje předchozí propad způsobený vysokou inflací.</li>
+      </ul>
+      Pokles reálných mezd v letech 2022 a 2023 byl způsoben vysokou inflací, která převyšovala růst nominálních mezd. S poklesem inflace se reálné mzdy vrací k růstu.
+    </div>
+  </div>
+
 
 <script>
-const dataReal = [
-  {"Datum":"2017-12","Inflace":2.4,"Obdobi":"Babiš"},
-  {"Datum":"2018-01","Inflace":2.2,"Obdobi":"Babiš"},
-  {"Datum":"2018-02","Inflace":1.8,"Obdobi":"Babiš"},
-  {"Datum":"2018-03","Inflace":1.7,"Obdobi":"Babiš"},
-  {"Datum":"2018-04","Inflace":1.9,"Obdobi":"Babiš"},
-  {"Datum":"2018-05","Inflace":2.2,"Obdobi":"Babiš"},
-  {"Datum":"2018-06","Inflace":2.6,"Obdobi":"Babiš"},
-  {"Datum":"2018-07","Inflace":2.3,"Obdobi":"Babiš"},
-  {"Datum":"2018-08","Inflace":2.5,"Obdobi":"Babiš"},
-  {"Datum":"2018-09","Inflace":2.3,"Obdobi":"Babiš"},
-  {"Datum":"2018-10","Inflace":2.2,"Obdobi":"Babiš"},
-  {"Datum":"2018-11","Inflace":2.0,"Obdobi":"Babiš"},
-  {"Datum":"2018-12","Inflace":2.0,"Obdobi":"Babiš"},
-  {"Datum":"2019-01","Inflace":2.5,"Obdobi":"Babiš"},
-  {"Datum":"2019-02","Inflace":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-03","Inflace":3.0,"Obdobi":"Babiš"},
-  {"Datum":"2019-04","Inflace":2.8,"Obdobi":"Babiš"},
-  {"Datum":"2019-05","Inflace":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2019-06","Inflace":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-07","Inflace":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2019-08","Inflace":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2019-09","Inflace":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-10","Inflace":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-11","Inflace":3.1,"Obdobi":"Babiš"},
-  {"Datum":"2019-12","Inflace":3.2,"Obdobi":"Babiš"},
-  {"Datum":"2020-01","Inflace":3.6,"Obdobi":"Babiš"},
-  {"Datum":"2020-02","Inflace":3.7,"Obdobi":"Babiš"},
-  {"Datum":"2020-03","Inflace":3.4,"Obdobi":"Babiš"},
-  {"Datum":"2020-04","Inflace":3.2,"Obdobi":"Babiš"},
-  {"Datum":"2020-05","Inflace":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2020-06","Inflace":3.3,"Obdobi":"Babiš"},
-  {"Datum":"2020-07","Inflace":3.4,"Obdobi":"Babiš"},
-  {"Datum":"2020-08","Inflace":3.3,"Obdobi":"Babiš"},
-  {"Datum":"2020-09","Inflace":3.2,"Obdobi":"Babiš"},
-  {"Datum":"2020-10","Inflace":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2020-11","Inflace":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2020-12","Inflace":2.3,"Obdobi":"Babiš"},
-  {"Datum":"2021-01","Inflace":2.2,"Obdobi":"Babiš"},
-  {"Datum":"2021-02","Inflace":2.1,"Obdobi":"Babiš"},
-  {"Datum":"2021-03","Inflace":2.3,"Obdobi":"Babiš"},
-  {"Datum":"2021-04","Inflace":3.1,"Obdobi":"Babiš"},
-  {"Datum":"2021-05","Inflace":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2021-06","Inflace":2.8,"Obdobi":"Babiš"},
-  {"Datum":"2021-07","Inflace":3.4,"Obdobi":"Babiš"},
-  {"Datum":"2021-08","Inflace":4.1,"Obdobi":"Babiš"},
-  {"Datum":"2021-09","Inflace":4.9,"Obdobi":"Babiš"},
-  {"Datum":"2021-10","Inflace":5.8,"Obdobi":"Babiš"},
-  {"Datum":"2021-11","Inflace":6.0,"Obdobi":"Babiš"},
-  {"Datum":"2021-12","Inflace":6.6,"Obdobi":"Fiala"},
-  {"Datum":"2022-01","Inflace":9.9,"Obdobi":"Fiala"},
-  {"Datum":"2022-02","Inflace":11.1,"Obdobi":"Fiala"},
-  {"Datum":"2022-03","Inflace":12.7,"Obdobi":"Fiala"},
-  {"Datum":"2022-04","Inflace":14.2,"Obdobi":"Fiala"},
-  {"Datum":"2022-05","Inflace":16.0,"Obdobi":"Fiala"},
-  {"Datum":"2022-06","Inflace":17.2,"Obdobi":"Fiala"},
-  {"Datum":"2022-07","Inflace":17.5,"Obdobi":"Fiala"},
-  {"Datum":"2022-08","Inflace":17.2,"Obdobi":"Fiala"},
-  {"Datum":"2022-09","Inflace":18.0,"Obdobi":"Fiala"},
-  {"Datum":"2022-10","Inflace":15.1,"Obdobi":"Fiala"},
-  {"Datum":"2022-11","Inflace":16.2,"Obdobi":"Fiala"},
-  {"Datum":"2022-12","Inflace":15.8,"Obdobi":"Fiala"},
-  {"Datum":"2023-01","Inflace":17.5,"Obdobi":"Fiala"},
-  {"Datum":"2023-02","Inflace":16.7,"Obdobi":"Fiala"},
-  {"Datum":"2023-03","Inflace":15.0,"Obdobi":"Fiala"},
-  {"Datum":"2023-04","Inflace":12.7,"Obdobi":"Fiala"},
-  {"Datum":"2023-05","Inflace":11.1,"Obdobi":"Fiala"},
-  {"Datum":"2023-06","Inflace":9.7,"Obdobi":"Fiala"},
-  {"Datum":"2023-07","Inflace":8.8,"Obdobi":"Fiala"},
-  {"Datum":"2023-08","Inflace":8.5,"Obdobi":"Fiala"},
-  {"Datum":"2023-09","Inflace":6.9,"Obdobi":"Fiala"},
-  {"Datum":"2023-10","Inflace":8.5,"Obdobi":"Fiala"},
-  {"Datum":"2023-11","Inflace":7.3,"Obdobi":"Fiala"},
-  {"Datum":"2023-12","Inflace":6.9,"Obdobi":"Fiala"},
-  {"Datum":"2024-01","Inflace":2.3,"Obdobi":"Fiala"},
-  {"Datum":"2024-02","Inflace":2.0,"Obdobi":"Fiala"},
-  {"Datum":"2024-03","Inflace":2.0,"Obdobi":"Fiala"},
-  {"Datum":"2024-04","Inflace":2.9,"Obdobi":"Fiala"},
-  {"Datum":"2024-05","Inflace":2.6,"Obdobi":"Fiala"},
-  {"Datum":"2024-06","Inflace":2.0,"Obdobi":"Fiala"},
-  {"Datum":"2024-07","Inflace":2.2,"Obdobi":"Fiala"},
-  {"Datum":"2024-08","Inflace":2.2,"Obdobi":"Fiala"},
-  {"Datum":"2024-09","Inflace":2.6,"Obdobi":"Fiala"},
-  {"Datum":"2024-10","Inflace":2.8,"Obdobi":"Fiala"},
-  {"Datum":"2024-11","Inflace":2.8,"Obdobi":"Fiala"},
-  {"Datum":"2024-12","Inflace":3.0,"Obdobi":"Fiala"},
-  {"Datum":"2025-01","Inflace":2.8,"Obdobi":"Fiala"},
-  {"Datum":"2025-02","Inflace":2.7,"Obdobi":"Fiala"},
-  {"Datum":"2025-03","Inflace":2.7,"Obdobi":"Fiala"},
-  {"Datum":"2025-04","Inflace":1.8,"Obdobi":"Fiala"},
-  {"Datum":"2025-05","Inflace":2.4,"Obdobi":"Fiala"}
+// --- DATA PRO INFLACI ---
+const dataInflace = [
+  {"Datum":"2017-12","Hodnota":2.4,"Obdobi":"Babiš"},
+  {"Datum":"2018-01","Hodnota":2.2,"Obdobi":"Babiš"},
+  {"Datum":"2018-02","Hodnota":1.8,"Obdobi":"Babiš"},
+  {"Datum":"2018-03","Hodnota":1.7,"Obdobi":"Babiš"},
+  {"Datum":"2018-04","Hodnota":1.9,"Obdobi":"Babiš"},
+  {"Datum":"2018-05","Hodnota":2.2,"Obdobi":"Babiš"},
+  {"Datum":"2018-06","Hodnota":2.6,"Obdobi":"Babiš"},
+  {"Datum":"2018-07","Hodnota":2.3,"Obdobi":"Babiš"},
+  {"Datum":"2018-08","Hodnota":2.5,"Obdobi":"Babiš"},
+  {"Datum":"2018-09","Hodnota":2.3,"Obdobi":"Babiš"},
+  {"Datum":"2018-10","Hodnota":2.2,"Obdobi":"Babiš"},
+  {"Datum":"2018-11","Hodnota":2.0,"Obdobi":"Babiš"},
+  {"Datum":"2018-12","Hodnota":2.0,"Obdobi":"Babiš"},
+  {"Datum":"2019-01","Hodnota":2.5,"Obdobi":"Babiš"},
+  {"Datum":"2019-02","Hodnota":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-03","Hodnota":3.0,"Obdobi":"Babiš"},
+  {"Datum":"2019-04","Hodnota":2.8,"Obdobi":"Babiš"},
+  {"Datum":"2019-05","Hodnota":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2019-06","Hodnota":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-07","Hodnota":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2019-08","Hodnota":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2019-09","Hodnota":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-10","Hodnota":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-11","Hodnota":3.1,"Obdobi":"Babiš"},
+  {"Datum":"2019-12","Hodnota":3.2,"Obdobi":"Babiš"},
+  {"Datum":"2020-01","Hodnota":3.6,"Obdobi":"Babiš"},
+  {"Datum":"2020-02","Hodnota":3.7,"Obdobi":"Babiš"},
+  {"Datum":"2020-03","Hodnota":3.4,"Obdobi":"Babiš"},
+  {"Datum":"2020-04","Hodnota":3.2,"Obdobi":"Babiš"},
+  {"Datum":"2020-05","Hodnota":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2020-06","Hodnota":3.3,"Obdobi":"Babiš"},
+  {"Datum":"2020-07","Hodnota":3.4,"Obdobi":"Babiš"},
+  {"Datum":"2020-08","Hodnota":3.3,"Obdobi":"Babiš"},
+  {"Datum":"2020-09","Hodnota":3.2,"Obdobi":"Babiš"},
+  {"Datum":"2020-10","Hodnota":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2020-11","Hodnota":2.7,"Obdobi":"Babiš"},
+  {"Datum":"2020-12","Hodnota":2.3,"Obdobi":"Babiš"},
+  {"Datum":"2021-01","Hodnota":2.2,"Obdobi":"Babiš"},
+  {"Datum":"2021-02","Hodnota":2.1,"Obdobi":"Babiš"},
+  {"Datum":"2021-03","Hodnota":2.3,"Obdobi":"Babiš"},
+  {"Datum":"2021-04","Hodnota":3.1,"Obdobi":"Babiš"},
+  {"Datum":"2021-05","Hodnota":2.9,"Obdobi":"Babiš"},
+  {"Datum":"2021-06","Hodnota":2.8,"Obdobi":"Babiš"},
+  {"Datum":"2021-07","Hodnota":3.4,"Obdobi":"Babiš"},
+  {"Datum":"2021-08","Hodnota":4.1,"Obdobi":"Babiš"},
+  {"Datum":"2021-09","Hodnota":4.9,"Obdobi":"Babiš"},
+  {"Datum":"2021-10","Hodnota":5.8,"Obdobi":"Babiš"},
+  {"Datum":"2021-11","Hodnota":6.0,"Obdobi":"Babiš"},
+  {"Datum":"2021-12","Hodnota":6.6,"Obdobi":"Fiala"},
+  {"Datum":"2022-01","Hodnota":9.9,"Obdobi":"Fiala"},
+  {"Datum":"2022-02","Hodnota":11.1,"Obdobi":"Fiala"},
+  {"Datum":"2022-03","Hodnota":12.7,"Obdobi":"Fiala"},
+  {"Datum":"2022-04","Hodnota":14.2,"Obdobi":"Fiala"},
+  {"Datum":"2022-05","Hodnota":16.0,"Obdobi":"Fiala"},
+  {"Datum":"2022-06","Hodnota":17.2,"Obdobi":"Fiala"},
+  {"Datum":"2022-07","Hodnota":17.5,"Obdobi":"Fiala"},
+  {"Datum":"2022-08","Hodnota":17.2,"Obdobi":"Fiala"},
+  {"Datum":"2022-09","Hodnota":18.0,"Obdobi":"Fiala"},
+  {"Datum":"2022-10","Hodnota":15.1,"Obdobi":"Fiala"},
+  {"Datum":"2022-11","Hodnota":16.2,"Obdobi":"Fiala"},
+  {"Datum":"2022-12","Hodnota":15.8,"Obdobi":"Fiala"},
+  {"Datum":"2023-01","Hodnota":17.5,"Obdobi":"Fiala"},
+  {"Datum":"2023-02","Hodnota":16.7,"Obdobi":"Fiala"},
+  {"Datum":"2023-03","Hodnota":15.0,"Obdobi":"Fiala"},
+  {"Datum":"2023-04","Hodnota":12.7,"Obdobi":"Fiala"},
+  {"Datum":"2023-05","Hodnota":11.1,"Obdobi":"Fiala"},
+  {"Datum":"2023-06","Hodnota":9.7,"Obdobi":"Fiala"},
+  {"Datum":"2023-07","Hodnota":8.8,"Obdobi":"Fiala"},
+  {"Datum":"2023-08","Hodnota":8.5,"Obdobi":"Fiala"},
+  {"Datum":"2023-09","Hodnota":6.9,"Obdobi":"Fiala"},
+  {"Datum":"2023-10","Hodnota":8.5,"Obdobi":"Fiala"},
+  {"Datum":"2023-11","Hodnota":7.3,"Obdobi":"Fiala"},
+  {"Datum":"2023-12","Hodnota":6.9,"Obdobi":"Fiala"},
+  {"Datum":"2024-01","Hodnota":2.3,"Obdobi":"Fiala"},
+  {"Datum":"2024-02","Hodnota":2.0,"Obdobi":"Fiala"},
+  {"Datum":"2024-03","Hodnota":2.0,"Obdobi":"Fiala"},
+  {"Datum":"2024-04","Hodnota":2.9,"Obdobi":"Fiala"},
+  {"Datum":"2024-05","Hodnota":2.6,"Obdobi":"Fiala"},
+  {"Datum":"2024-06","Hodnota":2.0,"Obdobi":"Fiala"},
+  {"Datum":"2024-07","Hodnota":2.2,"Obdobi":"Fiala"},
+  {"Datum":"2024-08","Hodnota":2.2,"Obdobi":"Fiala"},
+  {"Datum":"2024-09","Hodnota":2.6,"Obdobi":"Fiala"},
+  {"Datum":"2024-10","Hodnota":2.8,"Obdobi":"Fiala"},
+  {"Datum":"2024-11","Hodnota":2.8,"Obdobi":"Fiala"},
+  {"Datum":"2024-12","Hodnota":3.0,"Obdobi":"Fiala"},
+  {"Datum":"2025-01","Hodnota":2.8,"Obdobi":"Fiala"},
+  {"Datum":"2025-02","Hodnota":2.7,"Obdobi":"Fiala"},
+  {"Datum":"2025-03","Hodnota":2.7,"Obdobi":"Fiala"},
+  {"Datum":"2025-04","Hodnota":1.8,"Obdobi":"Fiala"},
+  {"Datum":"2025-05","Hodnota":2.4,"Obdobi":"Fiala"}
 ];
 
+// --- DATA PRO REÁLNOU MZDU ---
+const dataMzda = [
+  {"Datum":"2017-12","Hodnota":5.3,"Obdobi":"Babiš"},
+  {"Datum":"2018-03","Hodnota":6.6,"Obdobi":"Babiš"},
+  {"Datum":"2018-06","Hodnota":6.2,"Obdobi":"Babiš"},
+  {"Datum":"2018-09","Hodnota":6,"Obdobi":"Babiš"},
+  {"Datum":"2018-12","Hodnota":4.7,"Obdobi":"Babiš"},
+  {"Datum":"2019-03","Hodnota":4.6,"Obdobi":"Babiš"},
+  {"Datum":"2019-06","Hodnota":4.3,"Obdobi":"Babiš"},
+  {"Datum":"2019-09","Hodnota":4,"Obdobi":"Babiš"},
+  {"Datum":"2019-12","Hodnota":6.7,"Obdobi":"Babiš"},
+  {"Datum":"2020-03","Hodnota":1.4,"Obdobi":"Babiš"},
+  {"Datum":"2020-06","Hodnota":-2.5,"Obdobi":"Babiš"},
+  {"Datum":"2020-09","Hodnota":1.7,"Obdobi":"Babiš"},
+  {"Datum":"2020-12","Hodnota":3.8,"Obdobi":"Babiš"},
+  {"Datum":"2021-03","Hodnota":1,"Obdobi":"Babiš"},
+  {"Datum":"2021-06","Hodnota":8.2,"Obdobi":"Babiš"},
+  {"Datum":"2021-09","Hodnota":1.5,"Obdobi":"Babiš"},
+  {"Datum":"2021-12","Hodnota":-2,"Obdobi":"Babiš"},
+  {"Datum":"2022-03","Hodnota":-3.6,"Obdobi":"Fiala"},
+  {"Datum":"2022-06","Hodnota":-9.8,"Obdobi":"Fiala"},
+  {"Datum":"2022-09","Hodnota":-9.8,"Obdobi":"Fiala"},
+  {"Datum":"2022-12","Hodnota":-6.7,"Obdobi":"Fiala"},
+  {"Datum":"2023-03","Hodnota":-6.7,"Obdobi":"Fiala"},
+  {"Datum":"2023-06","Hodnota":-3.1,"Obdobi":"Fiala"},
+  {"Datum":"2023-09","Hodnota":-0.8,"Obdobi":"Fiala"},
+  {"Datum":"2023-12","Hodnota":-1.2,"Obdobi":"Fiala"},
+  {"Datum":"2024-03","Hodnota":4.8,"Obdobi":"Fiala"},
+  {"Datum":"2024-06","Hodnota":3.9,"Obdobi":"Fiala"},
+  {"Datum":"2024-09","Hodnota":4.6,"Obdobi":"Fiala"},
+  {"Datum":"2024-12","Hodnota":4.2,"Obdobi":"Fiala"},
+  {"Datum":"2025-03","Hodnota":3.9,"Obdobi":"Fiala"}
+];
+
+
+// Univerzální parseDate funkce
 const parseDate = d3.timeParse("%Y-%m");
-dataReal.forEach(d => d.date = parseDate(d.Datum));
-const dataBabis = dataReal.filter(d => d.date < parseDate("2021-12"));
-const dataFiala = dataReal.filter(d => d.date >= parseDate("2021-12"));
 
-// Hlavní vykreslovací funkce pro celý graf
-function drawChart() {
-  // Vyčistíme SVG před opětovným vykreslením
-  d3.select("#chart").selectAll("*").remove();
+// Funkce pro vykreslení jednoho "You Draw It" grafu
+function createYouDrawItChart(
+    svgId,
+    data,
+    dataField,
+    startBabisDate,
+    endBabisDate,
+    startFialaDate,
+    endFialaDate,
+    yDomainMin, // Specifické pro každý graf, např. 0 pro inflaci, -10 pro mzdy
+    yDomainMax, // Specifické pro každý graf, např. 25 pro inflaci, 10 pro mzdy
+    showZeroLine, // true/false pro zobrazení 0% osy
+    evaluateButtonId,
+    resetButtonId,
+    truthInfoId
+) {
+    // Příprava dat
+    data.forEach(d => d.date = parseDate(d.Datum));
+    const dataBabis = data.filter(d => d.date < parseDate(endBabisDate));
+    const dataFiala = data.filter(d => d.date >= parseDate(startFialaDate));
 
-  const svgElement = document.getElementById("chart");
-  const currentSvgWidth = svgElement.getBoundingClientRect().width;
+    // Vyčistíme SVG před opětovným vykreslením
+    d3.select(`#${svgId}`).selectAll("*").remove();
 
-  let margin;
+    const svgElement = document.getElementById(svgId);
+    const currentSvgWidth = svgElement.getBoundingClientRect().width;
+
+    let margin;
     if (window.innerWidth < 500) {
-    margin = { top: 60, right: 45, bottom: 60, left: 35 }; // 🆙 více místa napravo na mobilu
+        margin = { top: 60, right: 45, bottom: 60, left: 35 };
     } else {
-    margin = { top: 60, right: 70, bottom: 60, left: 60 }; // 🆙 více místa napravo i na desktopu
+        margin = { top: 60, right: 70, bottom: 60, left: 60 };
     }
 
-  const width = currentSvgWidth - margin.left - margin.right;
-  let heightRatio = window.innerWidth < 500 ? 1.3 : 0.75;
-  const height = (currentSvgWidth * heightRatio) - margin.top - margin.bottom;
+    const width = currentSvgWidth - margin.left - margin.right;
+    let heightRatio = window.innerWidth < 500 ? 1.3 : 0.75;
+    const height = (currentSvgWidth * heightRatio) - margin.top - margin.bottom;
 
-  // Nastavíme viewBox na základě dynamicky spočítaných rozměrů
-  d3.select("#chart")
-    .attr("viewBox", `0 0 ${currentSvgWidth} ${currentSvgWidth * heightRatio}`)
-    .attr("preserveAspectRatio", "xMinYMin meet");
+    d3.select(`#${svgId}`)
+        .attr("viewBox", `0 0 ${currentSvgWidth} ${currentSvgWidth * heightRatio}`)
+        .attr("preserveAspectRatio", "xMinYMin meet");
 
-  const svgGroup = d3.select("#chart")
-    .append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
+    const svgGroup = d3.select(`#${svgId}`)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  const minDate = d3.min(dataReal, d => d.date);
-  const maxDate = d3.max(dataReal, d => d.date);
-  const x = d3.scaleTime().domain([d3.timeMonth.offset(minDate, -2), d3.timeMonth.offset(maxDate, 2)]).range([0, width]);
-  const y = d3.scaleLinear().domain([0, d3.max(dataReal, d => d.Inflace) + 2]).range([height, 0]);
+    const minOverallDate = d3.min(data, d => d.date);
+    const maxOverallDate = d3.max(data, d => d.date);
+    const x = d3.scaleTime().domain([d3.timeMonth.offset(minOverallDate, -2), d3.timeMonth.offset(maxOverallDate, 2)]).range([0, width]);
 
-  let isDrawing = false, hasDrawn = false, evaluated = false;
-  let userPoints = [], usedLabelPositions = [];
-  let userPath = svgGroup.append("path").attr("class", "user-line");
-  let fialaLine;
+    // Dynamická Y-osa s kontrolou, zda je 0% uvnitř datového rozsahu
+    const actualMinY = d3.min(data, d => d[dataField]);
+    const actualMaxY = d3.max(data, d => d[dataField]);
 
-  function drawLabelWithDot(xPos, yPos, color, text, align = "start", bold = false, blackText = false, xOffset = 0, isUser = false) {
-    let adjustedY = yPos;
-    const labelHeight = window.innerWidth < 500 ? 14 : 18;
+    const y = d3.scaleLinear()
+        .domain([
+            Math.min(actualMinY - (yDomainMin !== null ? 0 : 2), yDomainMin !== null ? yDomainMin : -2),
+            Math.max(actualMaxY + (yDomainMax !== null ? 0 : 2), yDomainMax !== null ? yDomainMax : 2)
+        ])
+        .range([height, 0]);
 
-    let collisions = 0;
-    for (let i = 0; i < usedLabelPositions.length; i++) {
-        if (Math.abs(usedLabelPositions[i] - adjustedY) < labelHeight) {
-            collisions++;
+    let isDrawing = false, hasDrawn = false, evaluated = false;
+    let userPoints = [], usedLabelPositions = [];
+    let userPath = svgGroup.append("path").attr("class", "user-line");
+    let fialaLine;
+
+    function drawLabelWithDot(xPos, yPos, color, text, align = "start", bold = false, blackText = false, xOffset = 0, isUser = false) {
+        let adjustedY = yPos;
+        const labelHeight = window.innerWidth < 500 ? 14 : 18;
+
+        let collisions = 0;
+        for (let i = 0; i < usedLabelPositions.length; i++) {
+            if (Math.abs(usedLabelPositions[i] - adjustedY) < labelHeight) {
+                collisions++;
+            }
+        }
+        if (collisions > 0) {
+            adjustedY -= (collisions * labelHeight);
+        }
+        usedLabelPositions.push(adjustedY);
+
+        const circle = svgGroup.append("circle")
+            .attr("cx", xPos)
+            .attr("cy", adjustedY)
+            .attr("r", window.innerWidth < 500 ? 4 : 5)
+            .attr("fill", color);
+
+        if (isUser) circle.classed("user-dot", true);
+
+        svgGroup.append("text")
+            .attr("x", xPos + xOffset + (align === "start" ? 8 : align === "middle" ? 0 : -8))
+            .attr("y", adjustedY - (window.innerWidth < 500 ? 8 : 10))
+            .attr("text-anchor", align)
+            .style("fill", blackText ? "#000" : color)
+            .style("font-weight", bold ? "bold" : "normal")
+            .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+            .text(text);
+    }
+
+    // Osy
+    svgGroup.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x)
+              .tickFormat(d3.timeFormat("%Y"))
+              .ticks(window.innerWidth < 500 ? d3.timeYear.every(2) : d3.timeYear.every(1))
+        )
+        .selectAll("text")
+        .style("text-anchor", "middle")
+        .style("font-size", window.innerWidth < 500 ? "10px" : "14px")
+        .attr("dy", "1em");
+
+    svgGroup.append("g")
+        .call(d3.axisLeft(y)
+              .tickFormat(d => `${d} %`)
+              .ticks(5)
+        )
+        .selectAll("text")
+        .style("font-size", window.innerWidth < 500 ? "10px" : "12px");
+    
+    svgGroup.append("g")
+        .attr("class", "y-grid")
+        .call(
+          d3.axisLeft(y)
+            .tickSize(-width)
+            .tickFormat("")
+        )
+        .selectAll("line")
+        .attr("stroke", "#ddd")
+        .attr("stroke-dasharray", "2,2");
+    svgGroup.selectAll(".y-grid path").remove();
+
+    // 0 % osa
+    if (showZeroLine) {
+        svgGroup.append("line")
+            .attr("class", "zero-line")
+            .attr("x1", 0)
+            .attr("y1", y(0))
+            .attr("x2", width)
+            .attr("y2", y(0));
+        svgGroup.append("text")
+            .attr("class", "label")
+            .attr("x", -margin.left + 5)
+            .attr("y", y(0) - 5)
+            .attr("text-anchor", "start")
+            .style("fill", "#555")
+            .style("font-weight", "bold")
+            .style("font-size", window.innerWidth < 500 ? "10px" : "12px")
+            .text("0 %");
+    }
+
+    // Pozadí vlád
+    svgGroup.append("rect")
+        .attr("x", x(parseDate(startBabisDate)))
+        .attr("width", x(parseDate(endBabisDate)) - x(parseDate(startBabisDate)))
+        .attr("height", height)
+        .attr("fill", "#e53935")
+        .attr("opacity", 0.05);
+
+    const yellowOverlay = svgGroup.append("rect")
+        .attr("id", `completion-highlight-${svgId}`) // Unikátní ID
+        .attr("y", 0)
+        .attr("height", height)
+        .attr("fill", "#fff59d")
+        .attr("opacity", 0.6)
+        .style("display", "none");
+
+    svgGroup.append("rect")
+        .attr("x", x(parseDate(startFialaDate)))
+        .attr("width", x(parseDate(endFialaDate)) - x(parseDate(startFialaDate)))
+        .attr("height", height)
+        .attr("fill", "#1e88e5")
+        .attr("opacity", 0.05);
+
+    // Nadpisy vlád
+    const babisMidX = x(new Date((parseDate(startBabisDate).getTime() + parseDate(endBabisDate).getTime()) / 2));
+    const fialaMidX = x(new Date((parseDate(startFialaDate).getTime() + parseDate(endFialaDate).getTime()) / 2));
+
+    const titleY = -margin.top / 2 + (window.innerWidth < 500 ? 15 : 20);
+
+    svgGroup.append("text")
+        .attr("x", babisMidX)
+        .attr("y", titleY)
+        .text("BABIŠOVA VLÁDA")
+        .attr("class", "label")
+        .style("fill", "#282660")
+        .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
+        .style("font-weight", "bold")
+        .style("letter-spacing", "1px")
+        .attr("text-anchor", "middle");
+
+    svgGroup.append("text")
+        .attr("x", fialaMidX)
+        .attr("y", titleY)
+        .text("FIALOVA VLÁDA")
+        .attr("class", "label")
+        .style("fill", "#1e88e5")
+        .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
+        .style("font-weight", "bold")
+        .style("letter-spacing", "1px")
+        .attr("text-anchor", "middle");
+
+    // Reálná čára (Babiš)
+    const line = d3.line().x(d => x(d.date)).y(d => y(d[dataField])).curve(d3.curveMonotoneX);
+    svgGroup.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
+
+    // Označení začátku a konce Babišovy vlády
+    const startBabisDataPoint = dataBabis[0];
+    const endBabisDataPoint = dataBabis[dataBabis.length - 1];
+
+    drawLabelWithDot(
+        x(startBabisDataPoint.date),
+        y(startBabisDataPoint[dataField]),
+        "#000",
+        `${startBabisDataPoint[dataField].toFixed(1)} %`,
+        "start",
+        true,
+        true,
+    );
+
+    drawLabelWithDot(
+        x(endBabisDataPoint.date),
+        y(endBabisDataPoint[dataField]),
+        "#000",
+        `${endBabisDataPoint[dataField].toFixed(1)} %`,
+        "end",
+        true,
+        true,
+    );
+
+    // Průhledná plocha pro kreslení a interakci
+    const drawingArea = svgGroup.append("rect")
+        .attr("class", "drawing-overlay")
+        .attr("x", x(parseDate(startFialaDate)))
+        .attr("y", 0)
+        .attr("width", x(parseDate(endFialaDate)) - x(parseDate(startFialaDate)))
+        .attr("height", height)
+        .attr("fill", "transparent")
+        .style("cursor", "crosshair");
+
+    // --- INTERACTION LOGIC (Mouse & Touch) ---
+    const evaluateButton = document.getElementById(evaluateButtonId);
+    const truthInfoDiv = document.getElementById(truthInfoId);
+
+    function handleInteractionStart(event, element) {
+        if (evaluated) return;
+        if (event.button === 2 || (event.touches && event.touches.length > 1)) return;
+
+        isDrawing = true;
+        hasDrawn = false;
+        userPoints = [];
+        userPath.attr("d", null);
+        svgGroup.selectAll("circle.user-dot").remove();
+        svgGroup.selectAll("text").filter(function () {
+            return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+        }).remove();
+        usedLabelPositions = [];
+
+        document.body.style.overflow = "hidden";
+
+        const start = x(parseDate(startFialaDate));
+        const end = x(parseDate(endFialaDate));
+        yellowOverlay
+            .style("display", "block")
+            .attr("x", start)
+            .attr("width", end - start);
+
+        evaluateButton.disabled = true;
+    }
+
+    function handleInteractionMove(event, element) {
+        if (!isDrawing || evaluated) return;
+
+        const [px, py] = d3.pointer(event, element);
+        const xDate = x.invert(px);
+        const yVal = y.invert(py);
+
+        // Kontrola rozsahu kreslení
+        if (
+            xDate >= parseDate(startFialaDate) &&
+            xDate <= parseDate(endFialaDate) &&
+            yVal >= y.domain()[0] && // Použít spodní limit Y-domény
+            yVal <= y.domain()[1]    // Použít horní limit Y-domény
+        ) {
+            userPoints.push([xDate, yVal]);
+
+            userPath.attr("d",
+                d3.line()
+                    .x(d => x(d[0]))
+                    .y(d => y(d[1]))
+                    .curve(d3.curveMonotoneX)(userPoints)
+            );
+
+            const lastDate = userPoints.at(-1)[0];
+            const endDate = parseDate(endFialaDate);
+            const lastX = x(lastDate);
+            const endX = x(endDate);
+
+            if (lastX >= endX - 5) {
+                yellowOverlay.style("display", "none");
+                evaluateButton.disabled = false;
+            } else {
+                yellowOverlay
+                    .style("display", "block")
+                    .attr("x", lastX)
+                    .attr("width", endX - lastX);
+                evaluateButton.disabled = true;
+            }
         }
     }
-    if (collisions > 0) {
-        adjustedY -= (collisions * labelHeight);
+
+    function handleInteractionEnd() {
+        if (!isDrawing || evaluated) return;
+        isDrawing = false;
+        hasDrawn = true;
+
+        const lastPoint = userPoints.at(-1);
+        const endDate = parseDate(endFialaDate);
+        const lastX = lastPoint ? x(lastPoint[0]) : -Infinity;
+        const endX = x(endDate);
+
+        if (lastPoint && lastX >= endX - 5) {
+            evaluateButton.disabled = false;
+            yellowOverlay.style("display", "none");
+        } else {
+            evaluateButton.disabled = true;
+            yellowOverlay.style("display", "block");
+        }
+        document.body.style.overflow = "auto";
     }
-    usedLabelPositions.push(adjustedY);
 
-    const circle = svgGroup.append("circle")
-      .attr("cx", xPos)
-      .attr("cy", adjustedY)
-      .attr("r", window.innerWidth < 500 ? 4 : 5)
-      .attr("fill", color);
+    drawingArea
+        .on("mousedown", function(event) { handleInteractionStart(event, this); })
+        .on("mouseup", handleInteractionEnd)
+        .on("mousemove", function(event) { handleInteractionMove(event, this); })
+        .on("mouseleave", handleInteractionEnd);
 
-    if (isUser) circle.classed("user-dot", true);
+    const drawingAreaNode = drawingArea.node();
+    drawingAreaNode.addEventListener("touchstart", function(event) {
+        event.preventDefault();
+        handleInteractionStart(event.touches[0], this);
+    }, { passive: false });
+    drawingAreaNode.addEventListener("touchmove", function(event) {
+        event.preventDefault();
+        if (isDrawing) { handleInteractionMove(event.touches[0], this); }
+    }, { passive: false });
+    drawingAreaNode.addEventListener("touchend", function(event) {
+        event.preventDefault();
+        handleInteractionEnd();
+    }, { passive: false });
 
-    svgGroup.append("text")
-      .attr("x", xPos + xOffset + (align === "start" ? 8 : align === "middle" ? 0 : -8))
-      .attr("y", adjustedY - (window.innerWidth < 500 ? 8 : 10))
-      .attr("text-anchor", align)
-      .style("fill", blackText ? "#000" : color)
-      .style("font-weight", bold ? "bold" : "normal")
-      .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
-      .text(text);
-  }
+    // Funkce pro vyhodnocení tipu
+    function evaluateTip() {
+        if (evaluated || !hasDrawn) return;
+        evaluated = true;
+        evaluateButton.disabled = true;
 
-  // Osy
-  svgGroup.append("g")
-    .attr("transform", `translate(0,${height})`)
-    .call(d3.axisBottom(x)
-          .tickFormat(d3.timeFormat("%Y"))
-          .ticks(window.innerWidth < 500 ? d3.timeYear.every(2) : d3.timeYear.every(1))
-    )
-    .selectAll("text")
-    .style("text-anchor", "middle")
-    .style("font-size", window.innerWidth < 500 ? "10px" : "14px")
-    .attr("dy", "1em"); // Posun textu osy X dolů
+        fialaLine = svgGroup.append("path")
+            .datum(dataFiala)
+            .attr("class", "true-line")
+            .attr("d", line);
 
-  // Y-osa mřížka (bez čísel)
-  svgGroup.append("g")
-    .attr("class", "y-grid")
-    .call(
-      d3.axisLeft(y)
-        .tickSize(-width)
-        .tickFormat("")
-    )
-    .selectAll("line")
-    .attr("stroke", "#ddd")
-    .attr("stroke-dasharray", "2,2");
-  svgGroup.selectAll(".y-grid path").remove();
+        const totalLength = fialaLine.node().getTotalLength();
+        fialaLine
+            .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
+            .attr("stroke-dashoffset", totalLength)
+            .transition()
+            .duration(1500)
+            .ease(d3.easeCubicInOut)
+            .attr("stroke-dashoffset", 0);
 
+        truthInfoDiv.style.display = "block";
 
-  // Pozadí vlád
-  svgGroup.append("rect")
-    .attr("x", x(parseDate("2017-12")))
-    .attr("width", x(parseDate("2021-12")) - x(parseDate("2017-12")))
-    .attr("height", height)
-    .attr("fill", "#e53935")
-    .attr("opacity", 0.05);
+        const endFialaDataPoint = dataFiala[dataFiala.length - 1];
+        const lastUserPoint = userPoints.at(-1);
 
-  const yellowOverlay = svgGroup.append("rect")
-    .attr("id", "completion-highlight")
-    .attr("y", 0)
-    .attr("height", height)
-    .attr("fill", "#fff59d")
-    .attr("opacity", 0.6)
-    .style("display", "none");
+        const fialaY = y(endFialaDataPoint[dataField]);
+        const userY = y(lastUserPoint[1]);
+        const fialaX = x(endFialaDataPoint.date);
+        const userX = x(lastUserPoint[0]);
 
-  svgGroup.append("rect")
-    .attr("x", x(parseDate("2021-12")))
-    .attr("width", x(parseDate("2025-05")) - x(parseDate("2021-12")))
-    .attr("height", height)
-    .attr("fill", "#1e88e5")
-    .attr("opacity", 0.05);
+        const minYGap = window.innerWidth < 500 ? 12 : 16;
+        const closeY = Math.abs(fialaY - userY) < minYGap;
 
-  // Nadpisy vlád
-  const babisStart = parseDate("2017-12");
-  const babisEnd = parseDate("2021-12");
-  const fialaStart = parseDate("2021-12");
-  const fialaEnd = parseDate("2025-05");
+        const fialaTextYOffset = closeY ? -minYGap / 2 : 0;
+        const userTextYOffset = closeY ? minYGap / 2 : 0;
 
-  const babisMidX = x(new Date((babisStart.getTime() + babisEnd.getTime()) / 2));
-  const fialaMidX = x(new Date((fialaStart.getTime() + fialaEnd.getTime()) / 2));
+        const fialaTextXOffset = window.innerWidth < 500 ? 10 : 14;
+        const userTextXOffset = closeY ? (window.innerWidth < 500 ? 12 : 15) : (window.innerWidth < 500 ? 20 : 25);
 
-  const titleY = -margin.top / 2 + (window.innerWidth < 500 ? 15 : 20);
+        svgGroup.append("circle")
+            .attr("cx", fialaX)
+            .attr("cy", fialaY)
+            .attr("r", window.innerWidth < 500 ? 4 : 5)
+            .attr("fill", "#000")
+            .classed("fiala-end-label", true);
 
-  svgGroup.append("text")
-    .attr("x", babisMidX)
-    .attr("y", titleY)
-    .text("BABIŠOVA VLÁDA")
-    .attr("class", "label")
-    .style("fill", "#282660")
-    .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
-    .style("font-weight", "bold")
-    .style("letter-spacing", "1px")
-    .attr("text-anchor", "middle");
+        svgGroup.append("circle")
+            .attr("cx", userX)
+            .attr("cy", userY)
+            .attr("r", window.innerWidth < 500 ? 4 : 5)
+            .attr("fill", "#1e88e5")
+            .classed("user-dot", true);
 
-  svgGroup.append("text")
-    .attr("x", fialaMidX)
-    .attr("y", titleY)
-    .text("FIALOVA VLÁDA")
-    .attr("class", "label")
-    .style("fill", "#1e88e5")
-    .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
-    .style("font-weight", "bold")
-    .style("letter-spacing", "1px")
-    .attr("text-anchor", "middle");
+        svgGroup.append("text")
+            .attr("x", fialaX + fialaTextXOffset)
+            .attr("y", fialaY + fialaTextYOffset - (window.innerWidth < 500 ? 8 : 10))
+            .attr("text-anchor", "start")
+            .style("fill", "#000")
+            .style("font-weight", "bold")
+            .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+            .text(`${endFialaDataPoint[dataField].toFixed(1)} %`)
+            .classed("fiala-end-label", true);
 
-  // Babišova čára (reálná data)
-  const line = d3.line().x(d => x(d.date)).y(d => y(d.Inflace)).curve(d3.curveMonotoneX);
-  svgGroup.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
+        svgGroup.append("text")
+            .attr("x", userX + userTextXOffset)
+            .attr("y", userY + userTextYOffset - (window.innerWidth < 500 ? 8 : 10))
+            .attr("text-anchor", "start")
+            .style("fill", "#1e88e5")
+            .style("font-weight", "bold")
+            .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+            .text(`${lastUserPoint[1].toFixed(1)} %`)
+            .classed("user-dot", true);
+    }
 
-  // Označení začátku a konce Babišovy vlády inflací
-  const startBabis = dataBabis[0];
-  const endBabis = dataBabis[dataBabis.length - 1];
+    // Funkce pro resetování kreslení
+    function resetDrawing() {
+        isDrawing = false;
+        hasDrawn = false;
+        evaluated = false;
+        userPoints = [];
+        userPath.attr("d", null);
+        if (fialaLine) fialaLine.remove();
 
-  drawLabelWithDot(
-    x(startBabis.date),
-    y(startBabis.Inflace),
-    "#000",
-    `${startBabis.Inflace.toFixed(1)} %`,
-    "start",
-    true,
-    true,
-  );
+        svgGroup.selectAll("circle.user-dot").remove();
+        svgGroup.selectAll("text").filter(function() {
+            return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
+        }).remove();
 
-  // ⭐ ZDE JE KLÍČOVÁ ZMĚNA pro popisek na konci Babišovy vlády
-  drawLabelWithDot(
-    x(endBabis.date),
-    y(endBabis.Inflace),
-    "#000",
-    `${endBabis.Inflace.toFixed(1)} %`,
-    "end", // ⭐ Změněno na "end" (text se zarovná na konec, tedy doleva od xPos)
-    true,
-    true,
-  );
+        usedLabelPositions = [];
+        truthInfoDiv.style.display = "none";
+        evaluateButton.disabled = true;
+        svgGroup.selectAll(".fiala-end-label").remove();
+        yellowOverlay.style("display", "none");
+        document.body.style.overflow = "auto";
+    }
 
-  // Průhledná plocha pro kreslení a interakci
-  const drawingArea = svgGroup.append("rect")
-    .attr("class", "drawing-overlay")
-    .attr("x", x(parseDate("2021-12")))
-    .attr("y", 0)
-    .attr("width", x(parseDate("2025-05")) - x(parseDate("2021-12")))
-    .attr("height", height)
-    .attr("fill", "transparent")
-    .style("cursor", "crosshair");
+    // Připojení event listenerů k tlačítkům
+    document.getElementById(resetButtonId).onclick = resetDrawing;
+    document.getElementById(evaluateButtonId).onclick = evaluateTip;
 
-  // --- INTERACTION LOGIC (Mouse & Touch) ---
-
-  // Funkce pro start interakce (mousedown / touchstart)
-function handleInteractionStart(event, element) {
-  if (evaluated) return;
-  if (event.button === 2 || (event.touches && event.touches.length > 1)) return;
-
-  isDrawing = true;
-  hasDrawn = false;
-  userPoints = [];
-  userPath.attr("d", null);
-  svgGroup.selectAll("circle.user-dot").remove();
-  svgGroup.selectAll("text").filter(function () {
-    return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
-  }).remove();
-  usedLabelPositions = [];
-
-  document.body.style.overflow = "hidden"; // ✅ Zabrání scrollu během kreslení
-
-  const start = x(parseDate("2021-12"));
-  const end = x(parseDate("2025-05"));
-  yellowOverlay
-    .style("display", "block")
-    .attr("x", start)
-    .attr("width", end - start);
-
-  // Zajistí, že tlačítko bude disabled na začátku kreslení
-  document.getElementById("evaluate").disabled = true;
+    // Počáteční stav tlačítka
+    evaluateButton.disabled = true;
 }
 
-  // Funkce pro pohyb interakce (mousemove / touchmove)
-  function handleInteractionMove(event, element) {
-    if (!isDrawing || evaluated) return;
+// Inicializace obou grafů
+function initializeCharts() {
+  // Inflace graf
+  createYouDrawItChart(
+    "chart-inflace",
+    dataInflace,
+    "Hodnota", // Data field pro inflaci
+    "2017-12", // Start Babis inflace
+    "2021-12", // End Babis inflace
+    "2021-12", // Start Fiala inflace
+    "2025-05", // End Fiala inflace
+    0, // Min Y domain pro inflaci (explicitně 0)
+    25, // Max Y domain pro inflaci (explicitně 25)
+    false, // Nezobrazovat 0% čáru pro inflaci
+    "evaluate-inflace",
+    "reset-inflace",
+    "truth-inflace"
+  );
 
-    const [px, py] = d3.pointer(event, element); // d3.pointer automaticky zohlední myš/dotyk
-    const xDate = x.invert(px);
-    const yVal = y.invert(py);
+  // Reálná mzda graf
+  createYouDrawItChart(
+    "chart-mzda",
+    dataMzda,
+    "Hodnota", // Data field pro reálnou mzdu
+    "2017-12", // Start Babis mzda
+    "2022-03", // End Babis mzda (jak jsi požadoval)
+    "2021-12", // Start Fiala mzda (jak jsi požadoval)
+    "2025-03", // End Fiala mzda
+    null, // Min Y domain pro mzdy (necháme dynamicky vypočítat, ale s ohledem na 0)
+    null, // Max Y domain pro mzdy (necháme dynamicky vypočítat, ale s ohledem na 0)
+    true, // Zobrazit 0% čáru pro reálnou mzdu
+    "evaluate-mzda",
+    "reset-mzda",
+    "truth-mzda"
+  );
+}
 
-    if (
-      xDate >= parseDate("2021-12") &&
-      xDate <= parseDate("2025-05") &&
-      yVal >= 0 &&
-      yVal <= 25
-    ) {
-      userPoints.push([xDate, yVal]);
 
-      userPath.attr("d",
-        d3.line()
-          .x(d => x(d[0]))
-          .y(d => y(d[1]))
-          .curve(d3.curveMonotoneX)(userPoints)
-      );
-
-      const lastDate = userPoints.at(-1)[0];
-      const endDate = parseDate("2025-05");
-      const lastX = x(lastDate);
-      const endX = x(endDate);
-
-      // Zde se kontroluje, zda uživatel dokreslil až na konec
-      if (lastX >= endX - 5) {
-        yellowOverlay.style("display", "none");
-        document.getElementById("evaluate").disabled = false; // Tlačítko se aktivuje
-      } else {
-        yellowOverlay
-          .style("display", "block")
-          .attr("x", lastX)
-          .attr("width", endX - lastX);
-        document.getElementById("evaluate").disabled = true; // Tlačítko zůstane disabled
-      }
-    }
-  }
-
-  // Funkce pro konec interakce (mouseup / touchend / mouseleave)
-  function handleInteractionEnd() {
-    if (!isDrawing || evaluated) return;
-    isDrawing = false;
-    hasDrawn = true;
-
-    const lastPoint = userPoints.at(-1);
-    const endDate = parseDate("2025-05");
-    // Kontrola, zda userPoints není prázdné
-    const lastX = lastPoint ? x(lastPoint[0]) : -Infinity;
-    const endX = x(endDate);
-
-    if (lastPoint && lastX >= endX - 5) {
-      document.getElementById("evaluate").disabled = false;
-      yellowOverlay.style("display", "none");
-    } else {
-      document.getElementById("evaluate").disabled = true;
-      yellowOverlay.style("display", "block");
-    }
-    document.body.style.overflow = "auto"; // ✅ Zpět scroll
-  }
-
-  // Myš: 'event' objekt je již kompletní, předáme ho přímo.
-  drawingArea
-    .on("mousedown", function(event) {
-        handleInteractionStart(event, this);
-    })
-    .on("mouseup", handleInteractionEnd)
-    .on("mousemove", function(event) {
-        handleInteractionMove(event, this);
-    })
-    .on("mouseleave", handleInteractionEnd); // mouseleave také ukončí kreslení
-
-  // Touch: 'event.touches[0]' obsahuje data prvního dotyku, předáme je.
-  const drawingAreaNode = drawingArea.node();
-
-  drawingAreaNode.addEventListener("touchstart", function(event) {
-    event.preventDefault(); // Zabrání posouvání stránky
-    handleInteractionStart(event.touches[0], this); // Předáme první dotyk jako event
-  }, { passive: false });
-
-  drawingAreaNode.addEventListener("touchmove", function(event) {
-    event.preventDefault(); // Zabrání posouvání stránky
-    if (isDrawing) { // Kreslíme, jen pokud uživatel začal kreslit
-        handleInteractionMove(event.touches[0], this); // Předáme první dotyk jako event
-    }
-  }, { passive: false });
-
-  drawingAreaNode.addEventListener("touchend", function(event) {
-    event.preventDefault(); // Zabrání výchozímu chování
-    handleInteractionEnd();
-  }, { passive: false });
-
-  // Funkce pro vyhodnocení tipu
-  function evaluateTip() {
-    if (evaluated || !hasDrawn) return;
-    evaluated = true;
-    document.getElementById("evaluate").disabled = true;
-
-    // Fialova čára – s animací
-    fialaLine = svgGroup.append("path")
-      .datum(dataFiala)
-      .attr("class", "true-line")
-      .attr("d", line);
-
-    // Animace čáry
-    const totalLength = fialaLine.node().getTotalLength();
-    fialaLine
-      .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
-      .attr("stroke-dashoffset", totalLength)
-      .transition()
-      .duration(1500)
-      .ease(d3.easeCubicInOut)
-      .attr("stroke-dashoffset", 0);
-
-    document.getElementById("truth").style.display = "block";
-
-    const endFiala = dataFiala[dataFiala.length - 1];
-    const lastUserPoint = userPoints.at(-1);
-
-    const fialaY = y(endFiala.Inflace);
-    const userY = y(lastUserPoint[1]);
-    const fialaX = x(endFiala.date);
-    const userX = x(lastUserPoint[0]);
-
-    const minYGap = window.innerWidth < 500 ? 12 : 16;
-    const closeY = Math.abs(fialaY - userY) < minYGap;
-
-    const fialaTextYOffset = closeY ? -minYGap / 2 : 0;
-    const userTextYOffset = closeY ? minYGap / 2 : 0;
-
-    const fialaTextXOffset = window.innerWidth < 500 ? 10 : 14;
-    const userTextXOffset = closeY ? (window.innerWidth < 500 ? 12 : 15) : (window.innerWidth < 500 ? 20 : 25);
-
-    svgGroup.append("circle")
-      .attr("cx", fialaX)
-      .attr("cy", fialaY)
-      .attr("r", window.innerWidth < 500 ? 4 : 5)
-      .attr("fill", "#000")
-      .classed("fiala-end-label", true);
-
-    svgGroup.append("circle")
-      .attr("cx", userX)
-      .attr("cy", userY)
-      .attr("r", window.innerWidth < 500 ? 4 : 5)
-      .attr("fill", "#1e88e5")
-      .classed("user-dot", true);
-
-    svgGroup.append("text")
-      .attr("x", fialaX + fialaTextXOffset)
-      .attr("y", fialaY + fialaTextYOffset - (window.innerWidth < 500 ? 8 : 10))
-      .attr("text-anchor", "start")
-      .style("fill", "#000")
-      .style("font-weight", "bold")
-      .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
-      .text(`${endFiala.Inflace.toFixed(1)} %`)
-      .classed("fiala-end-label", true);
-
-    svgGroup.append("text")
-      .attr("x", userX + userTextXOffset)
-      .attr("y", userY + userTextYOffset - (window.innerWidth < 500 ? 8 : 10))
-      .attr("text-anchor", "start")
-      .style("fill", "#1e88e5")
-      .style("font-weight", "bold")
-      .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
-      .text(`${lastUserPoint[1].toFixed(1)} %`)
-      .classed("user-dot", true);
-  }
-
-  // Funkce pro resetování kreslení
-  function resetDrawing() {
-    isDrawing = false;
-    hasDrawn = false;
-    evaluated = false;
-    userPoints = [];
-    userPath.attr("d", null);
-    if (fialaLine) fialaLine.remove();
-
-    svgGroup.selectAll("circle.user-dot").remove();
-    svgGroup.selectAll("text").filter(function() {
-      return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
-    }).remove();
-
-    usedLabelPositions = [];
-    document.getElementById("truth").style.display = "none";
-    document.getElementById("evaluate").disabled = true; // Zajištění disabled stavu po resetu
-    svgGroup.selectAll(".fiala-end-label").remove();
-    yellowOverlay.style("display", "none");
-    document.body.style.overflow = "auto"; // ✅ Zpět scroll
-  }
-
-  // Globální funkce pro tlačítka (dostupné z HTML onclick atributů)
-  window.resetDrawing = resetDrawing;
-  window.evaluateTip = evaluateTip;
-
-} // Konec drawChart() funkce
-
-// Vykreslit graf při načtení stránky
-drawChart();
+// Vykreslit grafy při načtení stránky
+initializeCharts();
 
 // Přidat listener pro změnu velikosti okna pro responzivitu
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(drawChart, 250); // Zpoždění pro zamezení mnoha vykreslení
+  resizeTimer = setTimeout(initializeCharts, 250); // Zavolat inicializaci pro oba grafy
 });
 
 </script>
