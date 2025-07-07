@@ -1,810 +1,1557 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You Draw It – Inflace a Reálná mzda</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f9fafb;
-      color: #222;
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      box-sizing: border-box;
-      overflow-x: hidden; /* Zabrání horizontálnímu scrollování */
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You Draw It – Souhrn ekonomických ukazatelů</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* ... (vaše CSS styly beze změny) ... */
+        /* Obecné styly pro body, aby se minimalizoval konflikt s redakčním systémem */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f9fafb;
+            color: #222;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
 
-    h2, p {
-      max-width: 620px;
-      margin: 20px auto 10px auto;
-      padding: 0 16px;
-      box-sizing: border-box;
-    }
+        /* --- UNIKÁTNÍ RODIČOVSKÝ KONTEJNR PRO VŠECHNY GRAFY --- */
+        .youdrawit-container {
+            max-width: 660px;
+            margin: 20px auto;
+            padding: 0 16px; /* Původní desktop hodnota */
+            box-sizing: border-box;
+        }
 
-    h2 {
-      font-size: 2rem;
-      margin-top: 20px;
-      margin-bottom: 10px;
-      color: #1a237e;
-    }
+        /* Styly cílené POUZE na elementy uvnitř .youdrawit-container */
+        .youdrawit-container h2 {
+            font-size: 1.8rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #1a237e;
+            line-height: 1.3;
+        }
 
-    p {
-      font-size: 1.1rem;
-      margin-bottom: 30px;
-      color: #444;
-    }
+        .youdrawit-container p {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            color: #444;
+        }
 
-    svg {
-      width: 100%; /* Vždy 100% dostupné šířky */
-      max-width: 620px; /* Ale ne více než 620px na desktopu */
-      height: auto; /* D3 bude počítat výšku na základě viewBox a heightRatio */
-      display: block;
-      margin: 0 auto; /* Centrování SVG */
-      min-height: 300px; /* Pojistka pro mobil, aby nebyl příliš nízký */
-    }
+        .youdrawit-container svg {
+            width: 100%;
+            max-width: 620px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            min-height: 300px;
+        }
 
-    .chart-section {
-        margin-bottom: 50px; /* Mezera mezi grafy */
-    }
+        .youdrawit-container .chart-section {
+            margin-bottom: 50px;
+        }
 
-    .true-line {
-      stroke: #e53935;
-      fill: none;
-      stroke-width: 2.5;
-    }
+        .youdrawit-container .true-line {
+            stroke: #e53935;
+            fill: none;
+            stroke-width: 2.5;
+        }
 
-    .user-line {
-      stroke: #1e88e5;
-      fill: none;
-      stroke-width: 2.5;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-dasharray: 4,4;
-    }
+        .youdrawit-container .user-line {
+            stroke: #1e88e5;
+            fill: none;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 4,4;
+        }
 
-    .label {
-      font-size: 14px;
-      fill: #555;
-    }
+        .youdrawit-container .label {
+            font-size: 14px;
+            fill: #555;
+        }
 
-    .btn-container {
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      max-width: 620px;
-      margin: 20px auto 0 auto;
-      padding: 0 16px;
-      box-sizing: border-box;
-    }
+        .youdrawit-container .btn-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-width: 620px;
+            margin: 20px auto 0 auto;
+            padding: 0 0;
+            box-sizing: border-box;
+        }
 
-    button {
-      padding: 12px 20px;
-      font-size: 1rem;
-      background-color: #1e88e5;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      flex-grow: 1;
-      min-width: 150px;
-    }
+        .youdrawit-container button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            flex-grow: 1;
+            min-width: 150px;
+        }
 
-    button:hover {
-      background-color: #1565c0;
-    }
+        button:hover {
+            background-color: #1565c0;
+        }
 
-    button:disabled {
-      background-color: #cccccc;
-      color: #666666;
-      cursor: not-allowed;
-    }
+        button:disabled {
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
 
-    .zero-line {
-        stroke: #999;
-        stroke-width: 1.5;
-        stroke-dasharray: 5,5;
-    }
+        .youdrawit-container .zero-line {
+            stroke: #999;
+            stroke-width: 1.5;
+            stroke-dasharray: 5,5;
+        }
 
-    .truth-info { /* Změněno z #truth na class pro vícenásobné použití */
-      margin-top: 25px;
-      padding: 15px;
-      background: #e8f0fe;
-      border-left: 4px solid #1e88e5;
-      font-size: 1.1rem;
-      display: none;
-      max-width: 620px;
-      margin: 25px auto 0 auto;
-      box-sizing: border-box;
-    }
-  </style>
+        .youdrawit-container .truth-info {
+            margin-top: 25px;
+            padding: 15px;
+            background: #e8f0fe;
+            border-left: 4px solid #1e88e5;
+            font-size: 1.1rem;
+            display: none;
+            max-width: 620px;
+            margin: 25px auto 0 auto;
+            box-sizing: border-box;
+            line-height: 1.7;
+        }
+
+        .youdrawit-container hr {
+            max-width: 620px;
+            margin: 40px auto;
+            border: 0;
+            border-top: 1px dashed #ccc;
+        }
+
+        /* Nové nebo upravené styly pro popisky Babišovy vlády */
+        .youdrawit-container .babis-label {
+            fill: #e53935; /* Červená barva pro text Babišových popisků */
+            font-weight: bold;
+        }
+        .youdrawit-container .babis-label-dot {
+            fill: #e53935; /* Červená barva pro tečky Babišových popisků */
+        }
+
+        /* --- MEDIA QUERIES PRO MOBILNÍ ZOBRAZENÍ (šířka <= 500px) --- */
+        @media (max-width: 500px) {
+            /* Změna paddingu rodičovského kontejneru pro větší šířku grafu */
+            .youdrawit-container {
+                padding: 0 5px; /* Sníženo z 16px, uvolní více horizontálního místa pro SVG */
+            }
+
+            /* Obecné zmenšení globálních popisků */
+            .youdrawit-container .label {
+                font-size: 12px;
+            }
+
+            /* Specifické pro nadpisy vlád (BABIŠOVA VLÁDA, FIALOVA VLÁDA) */
+            /* Tyto jsou nyní primárně řízeny z JS, ale CSS může sloužit jako pojistka s !important */
+            .youdrawit-container text[text-anchor="middle"][font-weight="bold"] {
+                font-size: 10px !important; /* Může být ještě menší */
+                letter-spacing: 0.5px !important; /* Zmenšit mezery mezi písmeny */
+            }
+
+            /* Styly pro popisky na koncích uživatelské/reálné linky po vyhodnocení */
+            .youdrawit-container .fiala-end-label,
+            .youdrawit-container .user-end-label {
+                font-size: 12px;
+            }
+        }
+    </style>
 </head>
 <body>
 
-  <div class="chart-section">
-    <h2>Jak podle vás rostla inflace za vlády Petra Fialy?</h2>
-    <p>Porovnejte svůj odhad s reálným vývojem inflace od prosince 2021. Předtím vládunul Andrej Babiš.</p>
+<div class="youdrawit-container">
+    <div class="chart-section">
+        <h2>Jak moc se podle vás zdražovalo za vlády Petra Fialy?</h2>
+        <p>Porovnejte svůj odhad s reálným vývojem inflace od začátku vlády Petra Fialy. Navažte plynule křivkou od konce vlády Andreje Babiše a nakreslete svůj tip.</p>
 
-    <svg id="chart-inflace" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+        <svg id="youdrawit-chart-inflace" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
 
-    <div class="btn-container">
-      <button id="reset-inflace">Zkusit znovu</button>
-      <button id="evaluate-inflace" disabled>Vyhodnotit můj tip</button>
+        <div class="btn-container">
+            <button id="youdrawit-reset-inflace">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-inflace" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-inflace" class="truth-info">
+            <strong>Česko</strong> má za sebou roky <strong>největší inflace</strong> od doby <strong>ekonomické transformace</strong>. 
+            Za <strong> rok 2022 </strong> <strong>spotřebitelské ceny</strong> prudce vzrostly v průměru o <strong>15 procent</strong>. 
+            Inflace vyletěla nahoru zejména kvůli <strong>důsledkům války na Ukrajině</strong> a následné <strong>energetické krizi</strong>. 
+            K cenové stabilizaci dochází od <strong>roku 2024</strong>, kdy se inflace v meziročním srovnání pohybuje po letech znovu kolem <strong>dvouprocentního cíle </strong> <strong>České národní banky</strong>.
+        </div>
     </div>
 
-    <div id="truth-inflace" class="truth-info">
-      Skutečný vývoj inflace v ČR byl následující:
-      <ul>
-        <li><strong>2022:</strong> Inflace dosáhla vrcholu 18 % v září 2022.</li>
-        <li><strong>2023:</strong> Inflace výrazně klesla. V polovině roku pod 10 %, ke konci roku se pohybovala okolo 7 %.</li>
-        <li><strong>2024 a 2025:</strong> Stabilizace k rozmezí mezi 2 až 3 %.</li>
-      </ul>
-      Tento pokles následoval po velmi silném inflačním šoku v roce 2022 v důsledku války na Ukrajině a následné energetické krizi.
-    </div>
-  </div>
+    <hr>
 
-  <hr style="max-width: 620px; margin: 40px auto; border: 0; border-top: 1px dashed #ccc;"> <div class="chart-section">
-    <h2>Jak se podle vás vyvíjel růst reálné mzdy za vlády Petra Fialy?</h2>
-    <p>Porovnejte svůj odhad s reálným vývojem reálné mzdy od prosince 2021. Předtím vládunul Andrej Babiš.</p>
+    <div class="chart-section">
+        <h2>Výše zdražování výrazně ovlivňuje vývoj naší reálné mzdy. Chudneme? Bohatneme? Jak to v posledních letech a měsících bylo?</h2>
+        <p>Porovnejte svůj odhad se skutečným vývojem reálné mzdy od prosince 2021.</p>
 
-    <svg id="chart-mzda" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+        <svg id="youdrawit-chart-mzda" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
 
-    <div class="btn-container">
-      <button id="reset-mzda">Zkusit znovu</button>
-      <button id="evaluate-mzda" disabled>Vyhodnotit můj tip</button>
+        <div class="btn-container">
+            <button id="youdrawit-reset-mzda">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-mzda" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-mzda" class="truth-info">
+            <strong>Mzdy</strong> se v <strong>Česku</strong> sice <strong>nominálně zvyšovaly</strong>, jejich <strong>reálná hodnota</strong> se ale kvůli <strong>mimořádně velké inflaci</strong> propadla. 
+            <strong>Ztráta hodnoty</strong> nastartovaná za Babiše pokračovala i za Fialy, kdy <strong>reálná mzda</strong> zejména v druhé polovině roku 2022 <strong>poklesla</strong> až skoro o <strong>10 procent</strong>. 
+            Růst reálné mzdy se vrátil v <strong>roce 2024</strong>, k čemuž opět pomohla <strong>cenová stabilizace</strong>.
+        </div>
     </div>
 
-    <div id="truth-mzda" class="truth-info">
-      Skutečný vývoj **růstu reálné mzdy** v ČR byl následující:
-      <ul>
-        <li><strong>2022:</strong> Reálné mzdy výrazně klesaly, nejvíce v Q2 a Q3.</li>
-        <li><strong>2023:</strong> Pokles se zpomalil, ale pokračoval po většinu roku. K mírnému růstu došlo až ke konci roku.</li>
-        <li><strong>2024 a 2025:</strong> Reálné mzdy opět rostou, což kompenzuje předchozí propad způsobený vysokou inflací.</li>
-      </ul>
-      Pokles reálných mezd v letech 2022 a 2023 byl způsoben vysokou inflací, která převyšovala růst nominálních mezd. S poklesem inflace se reálné mzdy vrací k růstu.
+    <hr>
+
+    <div class="chart-section">
+    <h2>Stav ekonomiky dokáže zlomit vládě vaz nebo jí naopak zajistit opětovný úspěch ve volbách. Jak se ekonomice dařilo za Fialovy vlády?<br></h2>        <p>Porovnejte svůj odhad se skutečným vývojem HDP od prosince 2021. Jedná se o čtvrtletní meziroční růst HDP. Vláda Andreje Babiše končila s růstem HDP okolo 4 procent.</p>
+
+        <svg id="youdrawit-chart-hdp" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-hdp">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-hdp" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-hdp" class="truth-info">
+            <strong>Babiš měl covid</strong>, <strong>Fiala válku</strong>. Obě tyto <strong>zásadní krize</strong> se promítly i do <strong>české ekonomiky</strong>. 
+            Zatímco po výkyvu v <strong>covidových letech 2020 a 2021</strong> se ekonomika <strong>vrátila k růstu</strong>, po <strong>roce 2022</strong> i v důsledku <strong>napjaté geopolitické situace</strong> česká ekonomika spíše <strong>stagnovala</strong> mezi <strong>nulou a jedním procentem</strong>. 
+            V současnosti se výkon tuzemské ekonomiky zvyšuje a podle <strong>prognóz</strong> míří k mírnému <strong>dvou až tříprocentnímu růstu</strong>.
+        </div>
+
     </div>
-  </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>A jak to bylo s důchody? Přidávalo se jako za Babiše, nebo ne?</h2>
+        <p>Porovnejte svůj odhad se skutečným vývojem průměrných důchodů od prosince 2021.</p>
+
+        <svg id="youdrawit-chart-duchody" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-duchody">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-duchody" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-duchody" class="truth-info">
+            <strong>Starobní</strong> i další <strong>důchody</strong> v posledních letech <strong>raketově vystřelily</strong>. 
+            Zatímco <strong>Babiš</strong> přidával důchodcům i nad rámec <strong>povinných valorizací</strong>, <strong>Fialův kabinet</strong> přidával pouze podle <strong>zákonného schématu</strong> založeného na <strong>růstu inflace</strong>. 
+            Přesto byl <strong>růst penzí</strong> za Fialy <strong>nominálně mnohem vyšší</strong>, protože <strong>spotřebitelské ceny</strong> vylétly nahoru. 
+            <br><br>V <strong>prvním čtvrtletí 2024</strong> tak <strong>průměrný starobní důchod</strong> činil více než <strong>21 tisíc korun</strong> za měsíc. 
+            <strong>Vláda Petra Fialy</strong> zároveň během svého mandátu představila <strong>důchodovou reformu</strong>, která mimo jiné <strong>valorizace podle inflace</strong> omezuje. 
+            <strong>Důchody</strong> se tak v budoucnu budou stále <strong>zvyšovat</strong>, ale <strong>pomalejším tempem</strong>.
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Přibylo lidí bez práce?</h2>
+        <p>Porovnejte svůj odhad s reálným vývojem podílu nezaměstnanosti od začátku Fialovy vlády.</p>
+
+        <svg id="youdrawit-chart-nezamestnanost" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-nezamestnanost">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-nezamestnanost" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-nezamestnanost" class="truth-info">
+            <strong>Česko</strong> má dlouhodobě jednu z <strong>nejnižších nezaměstnaností</strong> v <strong>Evropě</strong>. 
+            Platilo to jak za <strong>Babiše</strong>, tak i za <strong>Fialy</strong>. 
+            Od <strong>roku 2017</strong> se <strong>podíl nezaměstnaných osob</strong> pohybuje nejčastěji mezi <strong>2 až 4 procenty</strong>. 
+            Vliv na to neměly ani <strong>dvě velké krize</strong>, tedy <strong>pandemie</strong> a <strong>válka na Ukrajině</strong>, potažmo <strong>energetická krize</strong>. 
+            V posledních měsících se ale přesto dá říct, že se <strong>nezaměstnanost zvyšuje</strong> a od <strong>loňského prosince</strong> už přesahuje <strong>čtyři procenta</strong>.
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Konec masivního zadlužování, velké téma vlády. Podařilo se jí to?</h2>
+        <p>Porovnejte svůj odhad se skutečným vývojem podílu státního dluhu na HDP od roku 2021. Na konci vlády Andreje Babiše dosahovalo zadlužení Česka téměř 41 procent HDP. </p>
+
+        <svg id="youdrawit-chart-dluh-hdp" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-dluh-hdp">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-dluh-hdp" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-dluh-hdp" class="truth-info">
+        <strong>Fialova vláda</strong> nastupovala s velkým <strong>slibem</strong>, že bude řešit <strong>vysoké schodky státního rozpočtu</strong> a s tím související <strong>zadlužování</strong>. 
+        V ukazateli <strong>míry zadlužení vůči HDP</strong> se ale výsledek Česka i přes určitou snahu o konsolidaci veřejných financí <strong>zhoršil</strong>. 
+        Tento <strong>trend</strong> začal už za <strong>Babišovy vlády</strong>, která významně zvýšila <strong>schodek státního rozpočtu</strong> kvůli <strong>pandemické krizi</strong>.
+    </div>
+
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Podívejme se na schodky státního rozpočtu podrobně...</h2>
+        <p>Porovnejte svůj odhad s reálným vývojem salda státního rozpočtu (v miliardách Kč) od roku 2021. Babišova vláda končila s deficitem 420 miliard Kč.</p>
+
+        <svg id="youdrawit-chart-schodek-rozpoctu" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-schodek-rozpoctu">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-schodek-rozpoctu" disabled>Vyhodnotit můj tip</button>
+        </div>
+        <div id="youdrawit-truth-schodek-rozpoctu" class="truth-info">
+            <strong>Fialův kabinet</strong> ve <strong>vysokých schodcích</strong> sice pokračoval, <strong>postupnými kroky</strong> se mu ale podařilo v <strong>nominální hodnotě </strong> <strong>schodek státního rozpočtu snížit</strong>. 
+            Jedním z <strong>úsporných opatření</strong>, které <strong>pokles schodku</strong> způsobilo, byl tzv. <strong>konsolidační balíček</strong>, který upravoval <strong>státní výdaje</strong> v řadě odvětví. 
+            <strong><br><br>Fialova vláda</strong> nastupovala v <strong>roce 2021</strong> ještě s <strong>Babišovým rozpočtem</strong> se <strong>schodkem necelých 420 miliard korun</strong>. 
+            Pro <strong>rok 2025</strong> má vláda schválený <strong>deficit 241 miliard</strong>. 
+            Vzhledem ke <strong>slabému výkonu ekonomiky</strong> v posledních letech ale <strong>celkové zadlužení vůči HDP </strong> <strong>stouplo</strong>.
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>S válkou přišlo zbrojení. Jak se vyvíjí výdaje za obranu?</h2>
+        <p>Porovnejte svůj odhad se skutečným vývojem výdajů na obranu (v % HDP) od začátku Fialovy vlády. </p>
+
+        <svg id="youdrawit-chart-obrana-hdp" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-obrana-hdp">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-obrana-hdp" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-obrana-hdp" class="truth-info">
+            <strong>Závazek NATO</strong> vydávat <strong>2 % HDP</strong> na <strong>obranu</strong> zůstával v Evropě dlouhodobě nenaplněn. 
+            Zásadním impulsem pro <strong>zvyšování obranných výdajů</strong> byla <strong>ruská invaze na Ukrajinu</strong> v <strong>únoru 2022</strong>. 
+            S mírným <strong>zvyšováním financí</strong> začala už <strong>Babišova vláda</strong>, která se z <strong>1,1 %</strong> dostala během svého funkčního období na <strong>1,39 %</strong>. 
+            <strong><br><br>Současný kabinet</strong> ale do <strong>armády investoval více</strong> a v <strong>roce 2024 </strong> <strong>přesáhl 2 %</strong>. 
+            Kvůli <strong>napjaté situaci na Ukrajině</strong>, <strong>na Blízkém východě</strong> a <strong>tlaku USA</strong> se <strong>spojenci v NATO</strong> zavázali, že v budoucnu <strong>zvýší výdaje na obranu</strong> až na <strong>5 % HDP</strong>.
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Jaká vláda investovala více?</h2>
+        <p>Porovnejte svůj odhad s reálným vývojem veřejných investic (vyjádřeno jako % HDP) od roku 2021. </p>
+
+        <svg id="youdrawit-chart-investice-hdp" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-investice-hdp">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-investice-hdp" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-investice-hdp" class="truth-info">
+            Jak <strong>Babišova</strong>, tak <strong>Fialova vláda</strong> obhajovala <strong>vysoké schodky </strong> <strong>investicemi do budoucna</strong>. 
+            <strong>Fialův kabinet</strong> se u <strong>rozpočtu na rok 2025</strong> chlubil, že jde o <strong>největší investice v historii</strong>. 
+            To je pravda, pokud bychom se dívali na <strong>nominální částky</strong>. 
+            V porovnání s <strong>ekonomikou</strong> se <strong>Fialův kabinet</strong> drží každý rok těsně pod <strong>5 % HDP</strong>.
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Kdo postavil více kilometrů dálnic?</h2>
+        <p>Porovnejte svůj odhad s reálným počtem zprovozněných kilometrů dálnic od roku 2021.</p>
+
+        <svg id="youdrawit-chart-dalnice-km" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-dalnice-km">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-dalnice-km" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-dalnice-km" class="truth-info">
+            Kdo má <strong>největší zásluhy</strong> na <strong>postavených kilometrech dálnic</strong>? To je <strong>nekonečný souboj politiků</strong>. 
+            V případě <strong>rychlosti stavebního povolení</strong> se <strong>dálnice</strong> od nuly za jedno <strong>volební období</strong> postavit nedají. 
+            V době <strong>vlády Petra Fialy</strong> se tedy i za <strong>přispění vlády Andreje Babiše</strong> otevřelo <strong>víc nových kilometrů</strong> než v minulém období. 
+            Jen v <strong>roce 2024</strong> se zprovoznilo <strong>111 kilometrů dálnic</strong>, což je více než v letech <strong>2018–2021 dohromady</strong>.
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Je v Česku bezpečno? Jak se podle vás vyvíjel počet trestných činů za vlády Petra Fialy?</h2>
+        <p>Porovnejte svůj odhad s reálným počtem registrovaných trestných činů od roku 2021.</p>
+
+        <svg id="youdrawit-chart-kriminalita" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-kriminalita">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-kriminalita" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-kriminalita" class="truth-info">
+            <strong>Kriminalita</strong> výrazně <strong>propadla během pandemie</strong>, kdy platila <strong>opatření omezující pohyb</strong>. 
+            Tehdy za <strong>Babišovy vlády</strong> najednou meziročně <strong>poklesl počet kriminálních skutků</strong> o <strong>30 tisíc</strong> v přepočtu na 100 tisíc obyvatel. 
+            <br><br>Po <strong>roce 2021</strong> se <strong>kriminalita zvýšila</strong>, ale přesto <strong>zůstává nižší</strong> než v <strong>roce 2018</strong>. 
+            Loni dokonce <strong>počet spáchaných kriminálních skutků</strong> klesl na <strong>173 tisíc</strong> na 100 tisíc obyvatel.
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Jak nám zdražila elektřina?</h2>
+        <p>Porovnejte svůj odhad se skutečnou průměrnou cenou elektřiny za megawatthodinu (Mwh) v Kč od roku 2021.</p>
+
+        <svg id="youdrawit-chart-cena-energie" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-cena-energie">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-cena-energie" disabled>Vyhodnotit můj tip</button>
+        </div>
+        <div id="youdrawit-truth-cena-energie" class="truth-info">
+            Asi <strong>největší krizí</strong>, která měla v posledních letech <strong>nejvýraznější ekonomické dopady</strong> na obyvatele, byla <strong>energetická krize</strong>, která začala po <strong>ruské invazi na Ukrajinu</strong>. 
+            Od té doby došlo v <strong>Česku</strong> k <strong>výraznému a zřejmě i trvalému zdražení elektřiny</strong> – jak pro <strong>firmy</strong>, tak pro <strong>domácnosti</strong>. 
+            <br><br>Lidé tak dnes <strong>platí za elektřinu</strong> v Česku <strong>téměř nejvíce v Evropě</strong>. 
+            Zatímco za <strong>vlády Andreje Babiše</strong> v <strong>roce 2018</strong> domácnosti platily v průměru kolem <strong>4 tisíc korun za megawatthodinu</strong>, 
+            v <strong>roce 2024</strong> za <strong>vlády Petra Fialy</strong> činila <strong>průměrná cena</strong> za megawatthodinu <strong>8 493 korun</strong>.
+        </div>
+
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Pokračuje také krize nedostupnosti bydlení. Jak rychle bydlení zdražuje?</h2>
+        <p>Porovnejte svůj odhad s reálným kumulativním růstem cen bydlení (v %). Během Babišovy vlády se ceny bydlení zdvojnásobily oproti situaci v roce 2015.
+          Právě zdražení cen nemovitostí od roku 2015 graf ukazuje. Tipněte si, jak se situace dál vyjíjela za Fialovy vlády? </p>
+
+        <svg id="youdrawit-chart-bydleni" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-bydleni">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-bydleni" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-bydleni" class="truth-info">
+            V <strong>cenách bydlení</strong> zásadní <strong>zvrat za Fialovy vlády</strong> nepřišel a <strong>ceny</strong> tak <strong>postupně dál rostou</strong>. 
+            <strong>Vlastnické bydlení</strong>, na které je česká společnost většinově zvyklá, se stává pro <strong>značnou část lidí nedostupné</strong>. 
+            V posledních letech se zároveň <strong>nepodařila nastartovat výstavba nových bytů</strong>, které by <strong>ceny snižovaly</strong>. 
+            V porovnání s <strong>rokiem 2015</strong> tak na konci <strong>roku 2024</strong> <strong>zdražilo bydlení</strong> o <strong>130 procent</strong>.
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="chart-section">
+        <h2>Velkým tématem volebních kampaní je migrace. Jak se podle vás vyvíjel počet cizinců v Česku za vlády Petra Fialy?</h2>
+        <p>Porovnejte svůj odhad s reálným počtem cizinců v zemi od roku 2021.</p>
+
+        <svg id="youdrawit-chart-cizinci" viewBox="0 0 620 520" preserveAspectRatio="xMinYMin meet" width="100%" height="100%"></svg>
+
+        <div class="btn-container">
+            <button id="youdrawit-reset-cizinci">Zkusit znovu</button>
+            <button id="youdrawit-evaluate-cizinci" disabled>Vyhodnotit můj tip</button>
+        </div>
+
+        <div id="youdrawit-truth-cizinci" class="truth-info">
+            <strong>Počet cizinců</strong> se <strong>postupně zvyšoval</strong> už za <strong>Babišovy vlády</strong>, kdy jich každý rok v <strong>Česku přibývalo</strong> okolo <strong>20 až 30 tisíc</strong>. 
+            Velký zlom ale nastal po <strong>ruském útoku na Ukrajinu</strong>, po kterém do <strong>Česka</strong> zamířily <strong>desetitisíce uprchlíků</strong>, mezi nimiž byly hlavně <strong>ženy a děti</strong>. 
+            Z <strong>658 tisíc cizinců v roce 2021</strong> se jejich počet <strong>skokově navýšil</strong> na <strong>1 113 698</strong> o rok později. 
+            V <strong>roce 2024</strong> bylo v Česku evidováno <strong>1 094 090 cizinců</strong>.
+        </div>
+    </div>
+
+</div>
 
 
 <script>
-// --- DATA PRO INFLACI ---
-const dataInflace = [
-  {"Datum":"2017-12","Hodnota":2.4,"Obdobi":"Babiš"},
-  {"Datum":"2018-01","Hodnota":2.2,"Obdobi":"Babiš"},
-  {"Datum":"2018-02","Hodnota":1.8,"Obdobi":"Babiš"},
-  {"Datum":"2018-03","Hodnota":1.7,"Obdobi":"Babiš"},
-  {"Datum":"2018-04","Hodnota":1.9,"Obdobi":"Babiš"},
-  {"Datum":"2018-05","Hodnota":2.2,"Obdobi":"Babiš"},
-  {"Datum":"2018-06","Hodnota":2.6,"Obdobi":"Babiš"},
-  {"Datum":"2018-07","Hodnota":2.3,"Obdobi":"Babiš"},
-  {"Datum":"2018-08","Hodnota":2.5,"Obdobi":"Babiš"},
-  {"Datum":"2018-09","Hodnota":2.3,"Obdobi":"Babiš"},
-  {"Datum":"2018-10","Hodnota":2.2,"Obdobi":"Babiš"},
-  {"Datum":"2018-11","Hodnota":2.0,"Obdobi":"Babiš"},
-  {"Datum":"2018-12","Hodnota":2.0,"Obdobi":"Babiš"},
-  {"Datum":"2019-01","Hodnota":2.5,"Obdobi":"Babiš"},
-  {"Datum":"2019-02","Hodnota":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-03","Hodnota":3.0,"Obdobi":"Babiš"},
-  {"Datum":"2019-04","Hodnota":2.8,"Obdobi":"Babiš"},
-  {"Datum":"2019-05","Hodnota":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2019-06","Hodnota":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-07","Hodnota":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2019-08","Hodnota":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2019-09","Hodnota":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-10","Hodnota":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-11","Hodnota":3.1,"Obdobi":"Babiš"},
-  {"Datum":"2019-12","Hodnota":3.2,"Obdobi":"Babiš"},
-  {"Datum":"2020-01","Hodnota":3.6,"Obdobi":"Babiš"},
-  {"Datum":"2020-02","Hodnota":3.7,"Obdobi":"Babiš"},
-  {"Datum":"2020-03","Hodnota":3.4,"Obdobi":"Babiš"},
-  {"Datum":"2020-04","Hodnota":3.2,"Obdobi":"Babiš"},
-  {"Datum":"2020-05","Hodnota":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2020-06","Hodnota":3.3,"Obdobi":"Babiš"},
-  {"Datum":"2020-07","Hodnota":3.4,"Obdobi":"Babiš"},
-  {"Datum":"2020-08","Hodnota":3.3,"Obdobi":"Babiš"},
-  {"Datum":"2020-09","Hodnota":3.2,"Obdobi":"Babiš"},
-  {"Datum":"2020-10","Hodnota":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2020-11","Hodnota":2.7,"Obdobi":"Babiš"},
-  {"Datum":"2020-12","Hodnota":2.3,"Obdobi":"Babiš"},
-  {"Datum":"2021-01","Hodnota":2.2,"Obdobi":"Babiš"},
-  {"Datum":"2021-02","Hodnota":2.1,"Obdobi":"Babiš"},
-  {"Datum":"2021-03","Hodnota":2.3,"Obdobi":"Babiš"},
-  {"Datum":"2021-04","Hodnota":3.1,"Obdobi":"Babiš"},
-  {"Datum":"2021-05","Hodnota":2.9,"Obdobi":"Babiš"},
-  {"Datum":"2021-06","Hodnota":2.8,"Obdobi":"Babiš"},
-  {"Datum":"2021-07","Hodnota":3.4,"Obdobi":"Babiš"},
-  {"Datum":"2021-08","Hodnota":4.1,"Obdobi":"Babiš"},
-  {"Datum":"2021-09","Hodnota":4.9,"Obdobi":"Babiš"},
-  {"Datum":"2021-10","Hodnota":5.8,"Obdobi":"Babiš"},
-  {"Datum":"2021-11","Hodnota":6.0,"Obdobi":"Babiš"},
-  {"Datum":"2021-12","Hodnota":6.6,"Obdobi":"Fiala"},
-  {"Datum":"2022-01","Hodnota":9.9,"Obdobi":"Fiala"},
-  {"Datum":"2022-02","Hodnota":11.1,"Obdobi":"Fiala"},
-  {"Datum":"2022-03","Hodnota":12.7,"Obdobi":"Fiala"},
-  {"Datum":"2022-04","Hodnota":14.2,"Obdobi":"Fiala"},
-  {"Datum":"2022-05","Hodnota":16.0,"Obdobi":"Fiala"},
-  {"Datum":"2022-06","Hodnota":17.2,"Obdobi":"Fiala"},
-  {"Datum":"2022-07","Hodnota":17.5,"Obdobi":"Fiala"},
-  {"Datum":"2022-08","Hodnota":17.2,"Obdobi":"Fiala"},
-  {"Datum":"2022-09","Hodnota":18.0,"Obdobi":"Fiala"},
-  {"Datum":"2022-10","Hodnota":15.1,"Obdobi":"Fiala"},
-  {"Datum":"2022-11","Hodnota":16.2,"Obdobi":"Fiala"},
-  {"Datum":"2022-12","Hodnota":15.8,"Obdobi":"Fiala"},
-  {"Datum":"2023-01","Hodnota":17.5,"Obdobi":"Fiala"},
-  {"Datum":"2023-02","Hodnota":16.7,"Obdobi":"Fiala"},
-  {"Datum":"2023-03","Hodnota":15.0,"Obdobi":"Fiala"},
-  {"Datum":"2023-04","Hodnota":12.7,"Obdobi":"Fiala"},
-  {"Datum":"2023-05","Hodnota":11.1,"Obdobi":"Fiala"},
-  {"Datum":"2023-06","Hodnota":9.7,"Obdobi":"Fiala"},
-  {"Datum":"2023-07","Hodnota":8.8,"Obdobi":"Fiala"},
-  {"Datum":"2023-08","Hodnota":8.5,"Obdobi":"Fiala"},
-  {"Datum":"2023-09","Hodnota":6.9,"Obdobi":"Fiala"},
-  {"Datum":"2023-10","Hodnota":8.5,"Obdobi":"Fiala"},
-  {"Datum":"2023-11","Hodnota":7.3,"Obdobi":"Fiala"},
-  {"Datum":"2023-12","Hodnota":6.9,"Obdobi":"Fiala"},
-  {"Datum":"2024-01","Hodnota":2.3,"Obdobi":"Fiala"},
-  {"Datum":"2024-02","Hodnota":2.0,"Obdobi":"Fiala"},
-  {"Datum":"2024-03","Hodnota":2.0,"Obdobi":"Fiala"},
-  {"Datum":"2024-04","Hodnota":2.9,"Obdobi":"Fiala"},
-  {"Datum":"2024-05","Hodnota":2.6,"Obdobi":"Fiala"},
-  {"Datum":"2024-06","Hodnota":2.0,"Obdobi":"Fiala"},
-  {"Datum":"2024-07","Hodnota":2.2,"Obdobi":"Fiala"},
-  {"Datum":"2024-08","Hodnota":2.2,"Obdobi":"Fiala"},
-  {"Datum":"2024-09","Hodnota":2.6,"Obdobi":"Fiala"},
-  {"Datum":"2024-10","Hodnota":2.8,"Obdobi":"Fiala"},
-  {"Datum":"2024-11","Hodnota":2.8,"Obdobi":"Fiala"},
-  {"Datum":"2024-12","Hodnota":3.0,"Obdobi":"Fiala"},
-  {"Datum":"2025-01","Hodnota":2.8,"Obdobi":"Fiala"},
-  {"Datum":"2025-02","Hodnota":2.7,"Obdobi":"Fiala"},
-  {"Datum":"2025-03","Hodnota":2.7,"Obdobi":"Fiala"},
-  {"Datum":"2025-04","Hodnota":1.8,"Obdobi":"Fiala"},
-  {"Datum":"2025-05","Hodnota":2.4,"Obdobi":"Fiala"}
-];
-
-// --- DATA PRO REÁLNOU MZDU ---
-const dataMzda = [
-  {"Datum":"2017-12","Hodnota":5.3,"Obdobi":"Babiš"},
-  {"Datum":"2018-03","Hodnota":6.6,"Obdobi":"Babiš"},
-  {"Datum":"2018-06","Hodnota":6.2,"Obdobi":"Babiš"},
-  {"Datum":"2018-09","Hodnota":6,"Obdobi":"Babiš"},
-  {"Datum":"2018-12","Hodnota":4.7,"Obdobi":"Babiš"},
-  {"Datum":"2019-03","Hodnota":4.6,"Obdobi":"Babiš"},
-  {"Datum":"2019-06","Hodnota":4.3,"Obdobi":"Babiš"},
-  {"Datum":"2019-09","Hodnota":4,"Obdobi":"Babiš"},
-  {"Datum":"2019-12","Hodnota":6.7,"Obdobi":"Babiš"},
-  {"Datum":"2020-03","Hodnota":1.4,"Obdobi":"Babiš"},
-  {"Datum":"2020-06","Hodnota":-2.5,"Obdobi":"Babiš"},
-  {"Datum":"2020-09","Hodnota":1.7,"Obdobi":"Babiš"},
-  {"Datum":"2020-12","Hodnota":3.8,"Obdobi":"Babiš"},
-  {"Datum":"2021-03","Hodnota":1,"Obdobi":"Babiš"},
-  {"Datum":"2021-06","Hodnota":8.2,"Obdobi":"Babiš"},
-  {"Datum":"2021-09","Hodnota":1.5,"Obdobi":"Babiš"},
-  {"Datum":"2021-12","Hodnota":-2,"Obdobi":"Babiš"},
-  {"Datum":"2022-03","Hodnota":-3.6,"Obdobi":"Fiala"},
-  {"Datum":"2022-06","Hodnota":-9.8,"Obdobi":"Fiala"},
-  {"Datum":"2022-09","Hodnota":-9.8,"Obdobi":"Fiala"},
-  {"Datum":"2022-12","Hodnota":-6.7,"Obdobi":"Fiala"},
-  {"Datum":"2023-03","Hodnota":-6.7,"Obdobi":"Fiala"},
-  {"Datum":"2023-06","Hodnota":-3.1,"Obdobi":"Fiala"},
-  {"Datum":"2023-09","Hodnota":-0.8,"Obdobi":"Fiala"},
-  {"Datum":"2023-12","Hodnota":-1.2,"Obdobi":"Fiala"},
-  {"Datum":"2024-03","Hodnota":4.8,"Obdobi":"Fiala"},
-  {"Datum":"2024-06","Hodnota":3.9,"Obdobi":"Fiala"},
-  {"Datum":"2024-09","Hodnota":4.6,"Obdobi":"Fiala"},
-  {"Datum":"2024-12","Hodnota":4.2,"Obdobi":"Fiala"},
-  {"Datum":"2025-03","Hodnota":3.9,"Obdobi":"Fiala"}
-];
+    (function() {
+        const parseDate = d3.timeParse("%Y-%m");
 
 
-// Univerzální parseDate funkce
-const parseDate = d3.timeParse("%Y-%m");
+        // --- DATA PRO INFLACI ---
+        const dataInflace = [
+            {"Datum":"2017-12","Hodnota":2.4,"Obdobi":"Babiš"}, {"Datum":"2018-01","Hodnota":2.2,"Obdobi":"Babiš"},
+            {"Datum":"2018-02","Hodnota":1.8,"Obdobi":"Babiš"}, {"Datum":"2018-03","Hodnota":1.7,"Obdobi":"Babiš"},
+            {"Datum":"2018-04","Hodnota":1.9,"Obdobi":"Babiš"}, {"Datum":"2018-05","Hodnota":2.2,"Obdobi":"Babiš"},
+            {"Datum":"2018-06","Hodnota":2.6,"Obdobi":"Babiš"}, {"Datum":"2018-07","Hodnota":2.3,"Obdobi":"Babiš"},
+            {"Datum":"2018-08","Hodnota":2.5,"Obdobi":"Babiš"}, {"Datum":"2018-09","Hodnota":2.3,"Obdobi":"Babiš"},
+            {"Datum":"2018-10","Hodnota":2.2,"Obdobi":"Babiš"}, {"Datum":"2018-11","Hodnota":2.0,"Obdobi":"Babiš"},
+            {"Datum":"2018-12","Hodnota":2.0,"Obdobi":"Babiš"}, {"Datum":"2019-01","Hodnota":2.5,"Obdobi":"Babiš"},
+            {"Datum":"2019-02","Hodnota":2.7,"Obdobi":"Babiš"}, {"Datum":"2019-03","Hodnota":3.0,"Obdobi":"Babiš"},
+            {"Datum":"2019-04","Hodnota":2.8,"Obdobi":"Babiš"}, {"Datum":"2019-05","Hodnota":2.9,"Obdobi":"Babiš"},
+            {"Datum":"2019-06","Hodnota":2.7,"Obdobi":"Babiš"}, {"Datum":"2019-07","Hodnota":2.9,"Obdobi":"Babiš"},
+            {"Datum":"2019-08","Hodnota":2.9,"Obdobi":"Babiš"}, {"Datum":"2019-09","Hodnota":2.7,"Obdobi":"Babiš"},
+            {"Datum":"2019-10","Hodnota":2.7,"Obdobi":"Babiš"}, {"Datum":"2019-11","Hodnota":3.1,"Obdobi":"Babiš"},
+            {"Datum":"2019-12","Hodnota":3.2,"Obdobi":"Babiš"}, {"Datum":"2020-01","Hodnota":3.6,"Obdobi":"Babiš"},
+            {"Datum":"2020-02","Hodnota":3.7,"Obdobi":"Babiš"}, {"Datum":"2020-03","Hodnota":3.4,"Obdobi":"Babiš"},
+            {"Datum":"2020-04","Hodnota":3.2,"Obdobi":"Babiš"}, {"Datum":"2020-05","Hodnota":2.9,"Obdobi":"Babiš"},
+            {"Datum":"2020-06","Hodnota":3.3,"Obdobi":"Babiš"}, {"Datum":"2020-07","Hodnota":3.4,"Obdobi":"Babiš"},
+            {"Datum":"2020-08","Hodnota":3.3,"Obdobi":"Babiš"}, {"Datum":"2020-09","Hodnota":3.8, "Obdobi":"Babiš"},
+            {"Datum":"2020-10","Hodnota":2.9,"Obdobi":"Babiš"}, {"Datum":"2020-11","Hodnota":2.7,"Obdobi":"Babiš"},
+            {"Datum":"2020-12","Hodnota":2.3,"Obdobi":"Babiš"}, {"Datum":"2021-01","Hodnota":2.2,"Obdobi":"Babiš"},
+            {"Datum":"2021-02","Hodnota":2.1,"Obdobi":"Babiš"}, {"Datum":"2021-03","Hodnota":2.3,"Obdobi":"Babiš"},
+            {"Datum":"2021-04","Hodnota":3.1,"Obdobi":"Babiš"}, {"Datum":"2021-05","Hodnota":2.9,"Obdobi":"Babiš"},
+            {"Datum":"2021-06","Hodnota":2.8,"Obdobi":"Babiš"}, {"Datum":"2021-07","Hodnota":3.4,"Obdobi":"Babiš"},
+            {"Datum":"2021-08","Hodnota":4.1,"Obdobi":"Babiš"}, {"Datum":"2021-09","Hodnota":4.9,"Obdobi":"Babiš"},
+            {"Datum":"2021-10","Hodnota":5.8,"Obdobi":"Babiš"}, {"Datum":"2021-11","Hodnota":6.0,"Obdobi":"Babiš"},
+            {"Datum":"2021-12","Hodnota":6.6,"Obdobi":"Fiala"}, {"Datum":"2022-01","Hodnota":9.9,"Obdobi":"Fiala"},
+            {"Datum":"2022-02","Hodnota":11.1,"Obdobi":"Fiala"}, {"Datum":"2022-03","Hodnota":12.7,"Obdobi":"Fiala"},
+            {"Datum":"2022-04","Hodnota":14.2,"Obdobi":"Fiala"}, {"Datum":"2022-05","Hodnota":16.0,"Obdobi":"Fiala"},
+            {"Datum":"2022-06","Hodnota":17.2,"Obdobi":"Fiala"}, {"Datum":"2022-07","Hodnota":17.5,"Obdobi":"Fiala"},
+            {"Datum":"2022-08","Hodnota":17.2,"Obdobi":"Fiala"}, {"Datum":"2022-09","Hodnota":18.0,"Obdobi":"Fiala"},
+            {"Datum":"2022-10","Hodnota":15.1,"Obdobi":"Fiala"}, {"Datum":"2022-11","Hodnota":16.2,"Obdobi":"Fiala"},
+            {"Datum":"2022-12","Hodnota":15.8,"Obdobi":"Fiala"}, {"Datum":"2023-01","Hodnota":17.5,"Obdobi":"Fiala"},
+            {"Datum":"2023-02","Hodnota":16.7,"Obdobi":"Fiala"}, {"Datum":"2023-03","Hodnota":15.0,"Obdobi":"Fiala"},
+            {"Datum":"2023-04","Hodnota":12.7,"Obdobi":"Fiala"}, {"Datum":"2023-05","Hodnota":11.1,"Obdobi":"Fiala"},
+            {"Datum":"2023-06","Hodnota":9.7,"Obdobi":"Fiala"}, {"Datum":"2023-07","Hodnota":8.8,"Obdobi":"Fiala"},
+            {"Datum":"2023-08","Hodnota":8.5,"Obdobi":"Fiala"}, {"Datum":"2023-09","Hodnota":6.9,"Obdobi":"Fiala"},
+            {"Datum":"2023-10","Hodnota":8.5,"Obdobi":"Fiala"}, {"Datum":"2023-11","Hodnota":7.3,"Obdobi":"Fiala"},
+            {"Datum":"2023-12","Hodnota":6.9,"Obdobi":"Fiala"}, {"Datum":"2024-01","Hodnota":2.3,"Obdobi":"Fiala"},
+            {"Datum":"2024-02","Hodnota":2.0,"Obdobi":"Fiala"}, {"Datum":"2024-03","Hodnota":2.0,"Obdobi":"Fiala"},
+            {"Datum":"2024-04","Hodnota":2.9,"Obdobi":"Fiala"}, {"Datum":"2024-05","Hodnota":2.6,"Obdobi":"Fiala"},
+            {"Datum":"2024-06","Hodnota":2.0,"Obdobi":"Fiala"}, {"Datum":"2024-07","Hodnota":2.2,"Obdobi":"Fiala"},
+            {"Datum":"2024-08","Hodnota":2.2,"Obdobi":"Fiala"}, {"Datum":"2024-09","Hodnota":2.6,"Obdobi":"Fiala"},
+            {"Datum":"2024-10","Hodnota":2.8,"Obdobi":"Fiala"}, {"Datum":"2024-11","Hodnota":2.8,"Obdobi":"Fiala"},
+            {"Datum":"2024-12","Hodnota":3.0,"Obdobi":"Fiala"}, {"Datum":"2025-01","Hodnota":2.8,"Obdobi":"Fiala"},
+            {"Datum":"2025-02","Hodnota":2.7,"Obdobi":"Fiala"}, {"Datum":"2025-03","Hodnota":2.7,"Obdobi":"Fiala"},
+            {"Datum":"2025-04","Hodnota":1.8,"Obdobi":"Fiala"}, {"Datum":"2025-05","Hodnota":2.4,"Obdobi":"Fiala"},
+            {"Datum":"2025-06","Hodnota":2.9,"Obdobi":"Fiala"}
+        ];
 
-// Funkce pro vykreslení jednoho "You Draw It" grafu
-function createYouDrawItChart(
-    svgId,
-    data,
-    dataField,
-    startBabisDate,
-    endBabisDate,
-    startFialaDate,
-    endFialaDate,
-    yDomainMin, // Specifické pro každý graf, např. 0 pro inflaci, -10 pro mzdy
-    yDomainMax, // Specifické pro každý graf, např. 25 pro inflaci, 10 pro mzdy
-    showZeroLine, // true/false pro zobrazení 0% osy
-    evaluateButtonId,
-    resetButtonId,
-    truthInfoId
-) {
-    // Příprava dat
-    data.forEach(d => d.date = parseDate(d.Datum));
-    const dataBabis = data.filter(d => d.date < parseDate(endBabisDate));
-    const dataFiala = data.filter(d => d.date >= parseDate(startFialaDate));
+        // --- DATA PRO REÁLNOU MZDU ---
+        const dataMzda = [
+            {"Datum":"2017-12","Hodnota":5.3,"Obdobi":"Babiš"}, {"Datum":"2018-03","Hodnota":6.6,"Obdobi":"Babiš"},
+            {"Datum":"2018-06","Hodnota":6.2,"Obdobi":"Babiš"}, {"Datum":"2018-09","Hodnota":6,"Obdobi":"Babiš"},
+            {"Datum":"2018-12","Hodnota":4.7,"Obdobi":"Babiš"}, {"Datum":"2019-03","Hodnota":4.6,"Obdobi":"Babiš"},
+            {"Datum":"2019-06","Hodnota":4.3,"Obdobi":"Babiš"}, {"Datum":"2019-09","Hodnota":4,"Obdobi":"Babiš"},
+            {"Datum":"2019-12","Hodnota":6.7,"Obdobi":"Babiš"}, {"Datum":"2020-03","Hodnota":1.4,"Obdobi":"Babiš"},
+            {"Datum":"2020-06","Hodnota":-2.5,"Obdobi":"Babiš"}, {"Datum":"2020-09","Hodnota":1.7,"Obdobi":"Babiš"},
+            {"Datum":"2020-12","Hodnota":3.8,"Obdobi":"Babiš"}, {"Datum":"2021-03","Hodnota":1,"Obdobi":"Babiš"},
+            {"Datum":"2021-06","Hodnota":8.2,"Obdobi":"Babiš"}, {"Datum":"2021-09","Hodnota":1.5,"Obdobi":"Babiš"},
+            {"Datum":"2021-12","Hodnota":-2,"Obdobi":"Babiš"}, {"Datum":"2022-03","Hodnota":-3.6,"Obdobi":"Fiala"},
+            {"Datum":"2022-06","Hodnota":-9.8,"Obdobi":"Fiala"}, {"Datum":"2022-09","Hodnota":-9.8,"Obdobi":"Fiala"},
+            {"Datum":"2022-12","Hodnota":-6.7,"Obdobi":"Fiala"}, {"Datum":"2023-03","Hodnota":-6.7,"Obdobi":"Fiala"},
+            {"Datum":"2023-06","Hodnota":-3.1,"Obdobi":"Fiala"}, {"Datum":"2023-09","Hodnota":-0.8,"Obdobi":"Fiala"},
+            {"Datum":"2023-12","Hodnota":-1.2,"Obdobi":"Fiala"}, {"Datum":"2024-03","Hodnota":4.8,"Obdobi":"Fiala"},
+            {"Datum":"2024-06","Hodnota":3.9,"Obdobi":"Fiala"}, {"Datum":"2024-09","Hodnota":4.6,"Obdobi":"Fiala"},
+            {"Datum":"2024-12","Hodnota":4.2,"Obdobi":"Fiala"}, {"Datum":"2025-03","Hodnota":3.9,"Obdobi":"Fiala"}
+        ];
 
-    // Vyčistíme SVG před opětovným vykreslením
-    d3.select(`#${svgId}`).selectAll("*").remove();
+        // --- DATA PRO HDP ---
+        const dataHDP = [
+            { Datum: "2017-12", Hodnota: 5.7, Obdobi: "Babiš" }, { Datum: "2018-03", Hodnota: 4.5, Obdobi: "Babiš" },
+            { Datum: "2018-06", Hodnota: 2.3, Obdobi: "Babiš" }, { Datum: "2018-09", Hodnota: 2.1, Obdobi: "Babiš" },
+            { Datum: "2018-12", Hodnota: 2.5, Obdobi: "Babiš" }, { Datum: "2019-03", Hodnota: 3.4, Obdobi: "Babiš" },
+            { Datum: "2019-06", Hodnota: 3.6, Obdobi: "Babiš" }, { Datum: "2019-09", Hodnota: 3.7, Obdobi: "Babiš" },
+            { Datum: "2019-12", Hodnota: 3.3, Obdobi: "Babiš" }, { Datum: "2020-03", Hodnota: -1.5, Obdobi: "Babiš" },
+            { Datum: "2020-06", Hodnota: -10.6, Obdobi: "Babiš" }, { Datum: "2020-09", Hodnota: -4.7, Obdobi: "Babiš" },
+            { Datum: "2020-12", Hodnota: -4.5, Obdobi: "Babiš" }, { Datum: "2021-03", Hodnota: -1.3, Obdobi: "Babiš" },
+            { Datum: "2021-06", Hodnota: 9.7, Obdobi: "Babiš" }, { Datum: "2021-09", Hodnota: 4.0, Obdobi: "Babiš" },
+            { Datum: "2021-12", Hodnota: 3.9, Obdobi: "Babiš" }, { Datum: "2022-03", Hodnota: 4.8, Obdobi: "Fiala" },
+            { Datum: "2022-06", Hodnota: 3.7, Obdobi: "Fiala" }, { Datum: "2022-09", Hodnota: 2.0, Obdobi: "Fiala" },
+            { Datum: "2022-12", Hodnota: 1.0, Obdobi: "Fiala" }, { Datum: "2023-03", Hodnota: 0.3, Obdobi: "Fiala" },
+            { Datum: "2023-06", Hodnota: 0.2, Obdobi: "Fiala" }, { Datum: "2023-09", Hodnota: -0.3, Obdobi: "Fiala" },
+            { Datum: "2023-12", Hodnota: 0.5, Obdobi: "Fiala" }, { Datum: "2024-03", Hodnota: 0.5, Obdobi: "Fiala" },
+            { Datum: "2024-06", Hodnota: 0.5, Obdobi: "Fiala" }, { Datum: "2024-09", Hodnota: 1.5, Obdobi: "Fiala" },
+            { Datum: "2024-12", Hodnota: 1.9, Obdobi: "Fiala" }, { Datum: "2025-03", Hodnota: 2.4, Obdobi: "Fiala" }
+        ];
 
-    const svgElement = document.getElementById(svgId);
-    const currentSvgWidth = svgElement.getBoundingClientRect().width;
+        // --- DATA PRO DŮCHODY ---
+        const dataDuchody = [
+            { Datum: "2017-12", Hodnota: 11850, Obdobi: "Babiš" },
+            { Datum: "2018-03", Hodnota: 12347, Obdobi: "Babiš" }, { Datum: "2018-06", Hodnota: 12369, Obdobi: "Babiš" },
+            { Datum: "2018-09", Hodnota: 12395, Obdobi: "Babiš" }, { Datum: "2018-12", Hodnota: 12418, Obdobi: "Babiš" },
+            { Datum: "2019-03", Hodnota: 13377, Obdobi: "Babiš" }, { Datum: "2019-06", Hodnota: 13408, Obdobi: "Babiš" },
+            { Datum: "2019-09", Hodnota: 13436, Obdobi: "Babiš" }, { Datum: "2019-12", Hodnota: 13468, Obdobi: "Babiš" },
+            { Datum: "2020-03", Hodnota: 14397, Obdobi: "Babiš" }, { Datum: "2020-06", Hodnota: 14427, Obdobi: "Babiš" },
+            { Datum: "2020-09", Hodnota: 14448, Obdobi: "Babiš" }, { Datum: "2020-12", Hodnota: 14479, Obdobi: "Babiš" },
+            { Datum: "2021-03", Hodnota: 15351, Obdobi: "Babiš" }, { Datum: "2021-06", Hodnota: 15385, Obdobi: "Babiš" },
+            { Datum: "2021-09", Hodnota: 15411, Obdobi: "Babiš" }, { Datum: "2021-12", Hodnota: 15425, Obdobi: "Fiala" },
+            { Datum: "2022-03", Hodnota: 16249, Obdobi: "Fiala" }, { Datum: "2022-06", Hodnota: 17299, Obdobi: "Fiala" },
+            { Datum: "2022-09", Hodnota: 18033, Obdobi: "Fiala" }, { Datum: "2022-12", Hodnota: 18061, Obdobi: "Fiala" },
+            { Datum: "2023-03", Hodnota: 19461, Obdobi: "Fiala" }, { Datum: "2023-06", Hodnota: 20233, Obdobi: "Fiala" },
+            { Datum: "2023-09", Hodnota: 20254, Obdobi: "Fiala" }, { Datum: "2023-12", Hodnota: 20264, Obdobi: "Fiala" },
+            { Datum: "2024-03", Hodnota: 20633, Obdobi: "Fiala" }, { Datum: "2024-06", Hodnota: 20653, Obdobi: "Fiala" },
+            { Datum: "2024-09", Hodnota: 20670, Obdobi: "Fiala" }, { Datum: "2024-12", Hodnota: 20680, Obdobi: "Fiala" },
+            { Datum: "2025-03", Hodnota: 21052, Obdobi: "Fiala" }
+        ];
 
-    let margin;
-    if (window.innerWidth < 500) {
-        margin = { top: 60, right: 45, bottom: 60, left: 35 };
-    } else {
-        margin = { top: 60, right: 70, bottom: 60, left: 60 };
-    }
+        // --- DATA PRO NEZAMĚSTNANOST ---
+        const dataNezamestnanost = [
+            { Datum: "2017-12", Hodnota: 3.8, Obdobi: "Babiš" }, { Datum: "2018-01", Hodnota: 3.9, Obdobi: "Babiš" },
+            { Datum: "2018-02", Hodnota: 3.7, Obdobi: "Babiš" }, { Datum: "2018-03", Hodnota: 3.5, Obdobi: "Babiš" },
+            { Datum: "2018-04", Hodnota: 3.2, Obdobi: "Babiš" }, { Datum: "2018-05", Hodnota: 3.0, Obdobi: "Babiš" },
+            { Datum: "2018-06", Hodnota: 2.9, Obdobi: "Babiš" }, { Datum: "2018-07", Hodnota: 3.1, Obdobi: "Babiš" },
+            { Datum: "2018-08", Hodnota: 3.1, Obdobi: "Babiš" }, { Datum: "2018-09", Hodnota: 3.0, Obdobi: "Babiš" },
+            { Datum: "2018-10", Hodnota: 2.8, Obdobi: "Babiš" }, { Datum: "2018-11", Hodnota: 2.8, Obdobi: "Babiš" },
+            { Datum: "2018-12", Hodnota: 3.1, Obdobi: "Babiš" }, { Datum: "2019-01", Hodnota: 3.3, Obdobi: "Babiš" },
+            { Datum: "2019-02", Hodnota: 3.2, Obdobi: "Babiš" }, { Datum: "2019-03", Hodnota: 3.0, Obdobi: "Babiš" },
+            { Datum: "2019-04", Hodnota: 2.7, Obdobi: "Babiš" }, { Datum: "2019-05", Hodnota: 2.6, Obdobi: "Babiš" },
+            {"Datum":"2019-06","Hodnota":2.6,"Obdobi":"Babiš"}, {"Datum":"2019-07","Hodnota":2.7,"Obdobi":"Babiš"},
+            {"Datum":"2019-08","Hodnota":2.7,"Obdobi":"Babiš"}, {"Datum":"2019-09","Hodnota":2.7,"Obdobi":"Babiš"},
+            {"Datum":"2019-10","Hodnota":2.6,"Obdobi":"Babiš"}, {"Datum":"2019-11","Hodnota":2.6,"Obdobi":"Babiš"},
+            {"Datum":"2019-12","Hodnota":2.9,"Obdobi":"Babiš"}, {"Datum":"2020-01","Hodnota":3.1,"Obdobi":"Babiš"},
+            {"Datum":"2020-02","Hodnota":3.0,"Obdobi":"Babiš"}, {"Datum":"2020-03","Hodnota":3.0,"Obdobi":"Babiš"},
+            {"Datum":"2020-04","Hodnota":3.4,"Obdobi":"Babiš"}, {"Datum":"2020-05","Hodnota":3.6,"Obdobi":"Babiš"},
+            {"Datum":"2020-06","Hodnota":3.7,"Obdobi":"Babiš"}, {"Datum":"2020-07","Hodnota":3.8,"Obdobi":"Babiš"},
+            {"Datum":"2020-08","Hodnota":3.8,"Obdobi":"Babiš"}, {"Datum":"2020-09","Hodnota":3.8,"Obdobi":"Babiš"},
+            {"Datum":"2020-10","Hodnota":3.7,"Obdobi":"Babiš"}, {"Datum":"2020-11","Hodnota":3.8,"Obdobi":"Babiš"},
+            {"Datum":"2020-12","Hodnota":4.0,"Obdobi":"Babiš"}, {"Datum":"2021-01","Hodnota":4.3,"Obdobi":"Babiš"},
+            {"Datum":"2021-02","Hodnota":4.3,"Obdobi":"Babiš"}, {"Datum":"2021-03","Hodnota":4.2,"Obdobi":"Babiš"},
+            {"Datum":"2021-04","Hodnota":4.1,"Obdobi":"Babiš"}, {"Datum":"2021-05","Hodnota":3.9,"Obdobi":"Babiš"},
+            {"Datum":"2021-06","Hodnota":3.7,"Obdobi":"Babiš"}, {"Datum":"2021-07","Hodnota":3.7,"Obdobi":"Babiš"},
+            {"Datum":"2021-08","Hodnota":3.6,"Obdobi":"Babiš"}, {"Datum":"2021-09","Hodnota":3.5,"Obdobi":"Babiš"},
+            {"Datum":"2021-10","Hodnota":3.4,"Obdobi":"Babiš"}, {"Datum":"2021-11","Hodnota":3.3,"Obdobi":"Babiš"},
+            {"Datum":"2021-12","Hodnota":3.5,"Obdobi":"Fiala"}, {"Datum":"2022-01","Hodnota":3.6,"Obdobi":"Fiala"},
+            {"Datum":"2022-02","Hodnota":3.5,"Obdobi":"Fiala"}, {"Datum":"2022-03","Hodnota":3.4,"Obdobi":"Fiala"},
+            {"Datum":"2022-04","Hodnota":3.3,"Obdobi":"Fiala"}, {"Datum":"2022-05","Hodnota":3.2,"Obdobi":"Fiala"},
+            {"Datum":"2022-06","Hodnota":3.1,"Obdobi":"Fiala"}, {"Datum":"2022-07","Hodnota":3.3,"Obdobi":"Fiala"},
+            {"Datum":"2022-08","Hodnota":3.4,"Obdobi":"Fiala"}, {"Datum":"2022-09","Hodnota":3.5,"Obdobi":"Fiala"},
+            {"Datum":"2022-10","Hodnota":3.5,"Obdobi":"Fiala"}, {"Datum":"2022-11","Hodnota":3.5,"Obdobi":"Fiala"},
+            {"Datum":"2022-12","Hodnota":3.7,"Obdobi":"Fiala"}, {"Datum":"2023-01","Hodnota":3.9,"Obdobi":"Fiala"},
+            {"Datum":"2023-02","Hodnota":3.9,"Obdobi":"Fiala"}, {"Datum":"2023-03","Hodnota":3.7,"Obdobi":"Fiala"},
+            {"Datum":"2023-04","Hodnota":3.6,"Obdobi":"Fiala"}, {"Datum":"2023-05","Hodnota":3.5,"Obdobi":"Fiala"},
+            {"Datum":"2023-06","Hodnota":3.4,"Obdobi":"Fiala"}, {"Datum":"2023-07","Hodnota":3.5,"Obdobi":"Fiala"},
+            {"Datum":"2023-08","Hodnota":3.6,"Obdobi":"Fiala"}, {"Datum":"2023-09","Hodnota":3.6,"Obdobi":"Fiala"},
+            {"Datum":"2023-10","Hodnota":3.5,"Obdobi":"Fiala"}, {"Datum":"2023-11","Hodnota":3.5,"Obdobi":"Fiala"},
+            {"Datum":"2023-12","Hodnota":3.7,"Obdobi":"Fiala"}, {"Datum":"2024-01","Hodnota":4.0,"Obdobi":"Fiala"},
+            {"Datum":"2024-02","Hodnota":4.0,"Obdobi":"Fiala"}, {"Datum":"2024-03","Hodnota":3.9,"Obdobi":"Fiala"},
+            {"Datum":"2024-04","Hodnota":3.7,"Obdobi":"Fiala"}, {"Datum":"2024-05","Hodnota":3.6,"Obdobi":"Fiala"},
+            {"Datum":"2024-06","Hodnota":3.6,"Obdobi":"Fiala"}, {"Datum":"2024-07","Hodnota":3.8,"Obdobi":"Fiala"},
+            {"Datum":"2024-08","Hodnota":3.8,"Obdobi":"Fiala"}, {"Datum":"2024-09","Hodnota":3.9,"Obdobi":"Fiala"},
+            {"Datum":"2024-10","Hodnota":3.8,"Obdobi":"Fiala"}, {"Datum":"2024-11","Hodnota":3.9,"Obdobi":"Fiala"},
+            {"Datum":"2024-12","Hodnota":4.1,"Obdobi":"Fiala"}, {"Datum":"2025-01","Hodnota":4.3,"Obdobi":"Fiala"},
+            {"Datum":"2025-02","Hodnota":4.4,"Obdobi":"Fiala"}, {"Datum":"2025-03","Hodnota":4.3,"Obdobi":"Fiala"},
+            {"Datum":"2025-04","Hodnota":4.3,"Obdobi":"Fiala"}, {"Datum":"2025-05","Hodnota":4.2,"Obdobi":"Fiala"}
+        ];
 
-    const width = currentSvgWidth - margin.left - margin.right;
-    let heightRatio = window.innerWidth < 500 ? 1.3 : 0.75;
-    const height = (currentSvgWidth * heightRatio) - margin.top - margin.bottom;
+        // --- DATA PRO DLUH HDP (upravený formát Datum na RRRR-MM pro konzistenci) ---
+        const dataDluhHDP = [
+            { Datum: "2017-12", Hodnota: 33.78, Obdobi: "Babiš" },
+            { Datum: "2018-12", Hodnota: 31.68, Obdobi: "Babiš" },
+            { Datum: "2019-12", Hodnota: 29.50, Obdobi: "Babiš" },
+            { Datum: "2020-12", Hodnota: 36.89, Obdobi: "Babiš" },
+            { Datum: "2021-12", Hodnota: 40.69, Obdobi: "Babiš" }, // Tady linka končí
+            { Datum: "2022-12", Hodnota: 42.52, Obdobi: "Fiala" }, // Tady linka začíná
+            { Datum: "2023-12", Hodnota: 42.38, Obdobi: "Fiala" },
+            { Datum: "2024-06", Hodnota: 43.60, Obdobi: "Fiala" }
+        ];
 
-    d3.select(`#${svgId}`)
-        .attr("viewBox", `0 0 ${currentSvgWidth} ${currentSvgWidth * heightRatio}`)
-        .attr("preserveAspectRatio", "xMinYMin meet");
+        // --- NOVÁ DATA PRO SCHODEK ROZPOČTU (upravený formát Datum na RRRR-MM pro konzistenci) ---
+        const dataSchodek = [
+            { Datum: "2017-12", Hodnota: -6.2, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2018-12", Hodnota: 2.9, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2019-12", Hodnota: -28.5, Obdobi: "Babiš" }, // Změněno z 2019-01
+            { Datum: "2020-12", Hodnota: -367.4, Obdobi: "Babiš" }, // Změněno z 2020-01
+            { Datum: "2021-12", Hodnota: -419.7, Obdobi: "Babiš" }, // Změněno z 2021-01
+            { Datum: "2022-12", Hodnota: -360.4, Obdobi: "Fiala" }, // Změněno z 2022-01
+            { Datum: "2023-12", Hodnota: -288.5, Obdobi: "Fiala" }, // Změněno z 2023-01
+            { Datum: "2024-12", Hodnota: -271.4, Obdobi: "Fiala" }, // Změněno z 2024-01
+            { Datum: "2025-06", Hodnota: -241.0, Obdobi: "Fiala" } // Změněno z 2025-01
+        ];
 
-    const svgGroup = d3.select(`#${svgId}`)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        // --- NOVÁ DATA PRO OBRANU HDP (upravený formát Datum na RRRR-MM pro konzistenci) ---
+        const dataObranaHDP = [
+            { Datum: "2017-12", Hodnota: 1.03, Obdobi: "Babiš" }, // Změněno z 2017-01
+            { Datum: "2018-12", Hodnota: 1.10, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2019-12", Hodnota: 1.18, Obdobi: "Babiš" }, // Změněno z 2019-01
+            { Datum: "2020-12", Hodnota: 1.30, Obdobi: "Babiš" }, // Změněno z 2020-01
+            { Datum: "2021-12", Hodnota: 1.39, Obdobi: "Babiš" }, // Změněno z 2021-01
+            { Datum: "2022-12", Hodnota: 1.34, Obdobi: "Fiala" }, // Změněno z 2022-01
+            { Datum: "2023-12", Hodnota: 1.53, Obdobi: "Fiala" }, // Změněno z 2023-01
+            { Datum: "2024-06", Hodnota: 2.10, Obdobi: "Fiala" } // Změněno z 2024-01
+        ];
 
-    const minOverallDate = d3.min(data, d => d.date);
-    const maxOverallDate = d3.max(data, d => d.date);
-    const x = d3.scaleTime().domain([d3.timeMonth.offset(minOverallDate, -2), d3.timeMonth.offset(maxOverallDate, 2)]).range([0, width]);
+        // --- NOVÁ DATA PRO INVESTICE HDP (upravený formát Datum na RRRR-MM pro konzistenci) ---
+        const dataInvesticeHDP = [
+            { Datum: "2017-12", Hodnota: 3.5, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2018-12", Hodnota: 4.2, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2019-12", Hodnota: 4.4, Obdobi: "Babiš" }, // Změněno z 2019-01
+            { Datum: "2020-12", Hodnota: 5.0, Obdobi: "Babiš" }, // Změněno z 2020-01
+            { Datum: "2021-12", Hodnota: 4.6, Obdobi: "Babiš" }, // Změněno z 2021-01
+            { Datum: "2022-12", Hodnota: 4.9, Obdobi: "Fiala" }, // Změněno z 2022-01
+            { Datum: "2023-12", Hodnota: 4.9, Obdobi: "Fiala" }, // Změněno z 2023-01
+            { Datum: "2024-06", Hodnota: 4.7, Obdobi: "Fiala" } // Změněno z 2024-01
+        ];
 
-    // Dynamická Y-osa s kontrolou, zda je 0% uvnitř datového rozsahu
-    const actualMinY = d3.min(data, d => d[dataField]);
-    const actualMaxY = d3.max(data, d => d[dataField]);
+        // --- NOVÁ DATA PRO DÁLNICE KM (upravený formát Datum na RRRR-MM pro konzistenci) ---
+        const dataDalniceKM = [
+            { Datum: "2017-12", Hodnota: 17, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2018-12", Hodnota: 4, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2019-12", Hodnota: 33, Obdobi: "Babiš" }, // Změněno z 2019-01
+            { Datum: "2020-12", Hodnota: 21, Obdobi: "Babiš" }, // Změněno z 2020-01
+            { Datum: "2021-12", Hodnota: 47, Obdobi: "Babiš" }, // Změněno z 2021-01
+            { Datum: "2022-12", Hodnota: 21, Obdobi: "Fiala" }, // Změněno z 2022-01
+            { Datum: "2023-12", Hodnota: 15, Obdobi: "Fiala" }, // Změněno z 2023-01
+            { Datum: "2024-12", Hodnota: 111, Obdobi: "Fiala" }, // Změněno z 2024-01
+            { Datum: "2025-06", Hodnota: 74, Obdobi: "Fiala" } // Změněno z 2025-01
+        ];
 
-    const y = d3.scaleLinear()
-        .domain([
-            Math.min(actualMinY - (yDomainMin !== null ? 0 : 2), yDomainMin !== null ? yDomainMin : -2),
-            Math.max(actualMaxY + (yDomainMax !== null ? 0 : 2), yDomainMax !== null ? yDomainMax : 2)
-        ])
-        .range([height, 0]);
+        // --- NOVÁ DATA PRO KRIMINALITU (upravený formát Datum na RRRR-MM pro konzistenci) ---
+        const dataKriminalita = [
+            { Datum: "2017-12", Hodnota: 202303, Obdobi: "Babiš" },
+            { Datum: "2018-12", Hodnota: 192405, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2019-12", Hodnota: 199221, Obdobi: "Babiš" }, // Změněno z 2019-01
+            { Datum: "2020-12", Hodnota: 165525, Obdobi: "Babiš" }, // Změněno z 2020-01
+            { Datum: "2021-12", Hodnota: 153233, Obdobi: "Babiš" }, // Změněno z 2021-01
+            { Datum: "2022-12", Hodnota: 181991, Obdobi: "Fiala" }, // Změněno z 2022-01
+            { Datum: "2023-12", Hodnota: 181417, Obdobi: "Fiala" }, // Změněno z 2023-01
+            { Datum: "2024-06", Hodnota: 173322, Obdobi: "Fiala" } // Změněno z 2024-01
+        ];
 
-    let isDrawing = false, hasDrawn = false, evaluated = false;
-    let userPoints = [], usedLabelPositions = [];
-    let userPath = svgGroup.append("path").attr("class", "user-line");
-    let fialaLine;
+        // --- NOVÁ DATA PRO CENU ENERGIE (upravený formát Datum na RRRR-MM pro konzistenci) ---
+        const dataCenaEnergie = [
+            { Datum: "2017-12", Hodnota: 3786, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2018-12", Hodnota: 4034, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2019-12", Hodnota: 4487, Obdobi: "Babiš" }, // Změněno z 2019-01
+            { Datum: "2020-12", Hodnota: 4868, Obdobi: "Babiš" }, // Změněno z 2020-01
+            { Datum: "2021-12", Hodnota: 4621, Obdobi: "Babiš" }, // Změněno z 2021-01
+            { Datum: "2022-12", Hodnota: 6006, Obdobi: "Fiala" }, // Změněno z 2022-01
+            { Datum: "2023-12", Hodnota: 7658, Obdobi: "Fiala" }, // Změněno z 2023-01
+            { Datum: "2024-06", Hodnota: 8493, Obdobi: "Fiala" } // Změněno z 2024-01
+        ];
 
-    function drawLabelWithDot(xPos, yPos, color, text, align = "start", bold = false, blackText = false, xOffset = 0, isUser = false) {
-        let adjustedY = yPos;
-        const labelHeight = window.innerWidth < 500 ? 14 : 18;
+        // --- OPRAVENÁ DATA PRO BYDLENÍ (NYNÍ RRRR-MM) ---
+        const dataBydleni = [
+            { Datum: "2017-12", Hodnota: 22.3, Obdobi: "Babiš" },
+            { Datum: "2018-03", Hodnota: 25.0, Obdobi: "Babiš" },
+            { Datum: "2018-06", Hodnota: 28.7, Obdobi: "Babiš" },
+            { Datum: "2018-09", Hodnota: 31.9, Obdobi: "Babiš" },
+            { Datum: "2018-12", Hodnota: 34.4, Obdobi: "Babiš" },
+            { Datum: "2019-03", Hodnota: 37.2, Obdobi: "Babiš" },
+            { Datum: "2019-06", Hodnota: 40.6, Obdobi: "Babiš" },
+            { Datum: "2019-09", Hodnota: 43.4, Obdobi: "Babiš" },
+            { Datum: "2019-12", Hodnota: 46.4, Obdobi: "Babiš" },
+            { Datum: "2020-03", Hodnota: 49.0, Obdobi: "Babiš" },
+            { Datum: "2020-06", Hodnota: 51.5, Obdobi: "Babiš" },
+            { Datum: "2020-09", Hodnota: 55.4, Obdobi: "Babiš" },
+            { Datum: "2020-12", Hodnota: 59.5, Obdobi: "Babiš" },
+            { Datum: "2021-03", Hodnota: 68.9, Obdobi: "Babiš" },
+            { Datum: "2021-06", Hodnota: 77.6, Obdobi: "Babiš" },
+            { Datum: "2021-09", Hodnota: 89.8, Obdobi: "Babiš" },
+            { Datum: "2021-12", Hodnota: 100.6, Obdobi: "Babiš" },
+            { Datum: "2022-03", Hodnota: 110.0, Obdobi: "Fiala" },
+            { Datum: "2022-06", Hodnota: 117.2, Obdobi: "Fiala" },
+            { Datum: "2022-09", Hodnota: 119.4, Obdobi: "Fiala" },
+            { Datum: "2022-12", Hodnota: 114.5, Obdobi: "Fiala" },
+            { Datum: "2023-03", Hodnota: 111.8, Obdobi: "Fiala" },
+            { Datum: "2023-06", Hodnota: 111.0, Obdobi: "Fiala" },
+            { Datum: "2023-09", Hodnota: 111.7, Obdobi: "Fiala" },
+            { Datum: "2023-12", Hodnota: 112.3, Obdobi: "Fiala" },
+            { Datum: "2024-03", Hodnota: 114.3, Obdobi: "Fiala" },
+            { Datum: "2024-06", Hodnota: 119.9, Obdobi: "Fiala" },
+            { Datum: "2024-09", Hodnota: 124.7, Obdobi: "Fiala" },
+            { Datum: "2024-12", Hodnota: 130.2, Obdobi: "Fiala" }
+        ];
 
-        let collisions = 0;
-        for (let i = 0; i < usedLabelPositions.length; i++) {
-            if (Math.abs(usedLabelPositions[i] - adjustedY) < labelHeight) {
-                collisions++;
-            }
-        }
-        if (collisions > 0) {
-            adjustedY -= (collisions * labelHeight);
-        }
-        usedLabelPositions.push(adjustedY);
+        // --- NOVÁ DATA PRO CIZINCE (upravený formát Datum na RRRR-MM pro konzistenci) ---
+        const dataCizinci = [
+            { Datum: "2017-12", Hodnota: 524100, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2018-12", Hodnota: 564345, Obdobi: "Babiš" }, // Změněno z 2018-01
+            { Datum: "2019-12", Hodnota: 593366, Obdobi: "Babiš" }, // Změněno z 2019-01
+            { Datum: "2020-12", Hodnota: 632570, Obdobi: "Babiš" }, // Změněno z 2020-01
+            { Datum: "2021-12", Hodnota: 658564, Obdobi: "Babiš" }, // Změněno z 2021-01
+            { Datum: "2022-12", Hodnota: 1113698, Obdobi: "Fiala" }, // Změněno z 2022-01
+            { Datum: "2023-12", Hodnota: 1063225, Obdobi: "Fiala" }, // Změněno z 2023-01
+            { Datum: "2024-06", Hodnota: 1094090, Obdobi: "Fiala" } // Změněno z 2024-01
+        ];
 
-        const circle = svgGroup.append("circle")
-            .attr("cx", xPos)
-            .attr("cy", adjustedY)
-            .attr("r", window.innerWidth < 500 ? 4 : 5)
-            .attr("fill", color);
+        // --- DATA PRO POPISKY BABIŠOVY VLÁDY ---
+        // Pro každý graf definujte pole popisků.
+        // Datum by se mělo shodovat s Datem ve zdrojových datech grafu (dataInflace, dataMzda atd.)
+        // xOffset a yOffset jsou individuální posuny textu popisku v pixelech.
+        // Kladné yOffset posouvá dolů, záporné nahoru. Kladné xOffset posouvá doprava, záporné doleva.
 
-        if (isUser) circle.classed("user-dot", true);
+        const babisLabelsInflace = [
+            { date: "2017-12", xOffset: -3, yOffset: 0 }, // Začátek Babišovy vlády
+            { date: "2021-11", xOffset: -60, yOffset: 0.5 } // Konec Babišovy vlády (listopad 2021)
+        ];
 
-        svgGroup.append("text")
-            .attr("x", xPos + xOffset + (align === "start" ? 8 : align === "middle" ? 0 : -8))
-            .attr("y", adjustedY - (window.innerWidth < 500 ? 8 : 10))
-            .attr("text-anchor", align)
-            .style("fill", blackText ? "#000" : color)
-            .style("font-weight", bold ? "bold" : "normal")
-            .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
-            .text(text);
-    }
+        const babisLabelsMzda = [
+            { date: "2017-12", xOffset: -8, yOffset: -2 },
+            { date: "2021-12", xOffset: -50, yOffset: 30 } // Listopad 2021 v datech mzdy je poslední Babišovo data
+        ];
 
-    // Osy
-    svgGroup.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x)
-              .tickFormat(d3.timeFormat("%Y"))
-              .ticks(window.innerWidth < 500 ? d3.timeYear.every(2) : d3.timeYear.every(1))
-        )
-        .selectAll("text")
-        .style("text-anchor", "middle")
-        .style("font-size", window.innerWidth < 500 ? "10px" : "14px")
-        .attr("dy", "1em");
+        const babisLabelsHDP = [
+            { date: "2017-12", xOffset: 9, yOffset: 1 },
+            { date: "2021-12", xOffset: -42, yOffset: 40 }
+        ];
 
-    svgGroup.append("g")
-        .call(d3.axisLeft(y)
-              .tickFormat(d => `${d} %`)
-              .ticks(5)
-        )
-        .selectAll("text")
-        .style("font-size", window.innerWidth < 500 ? "10px" : "12px");
-    
-    svgGroup.append("g")
-        .attr("class", "y-grid")
-        .call(
-          d3.axisLeft(y)
-            .tickSize(-width)
-            .tickFormat("")
-        )
-        .selectAll("line")
-        .attr("stroke", "#ddd")
-        .attr("stroke-dasharray", "2,2");
-    svgGroup.selectAll(".y-grid path").remove();
+        const babisLabelsDuchody = [
+            { date: "2017-12", xOffset: -5, yOffset: 0 },
+            { date: "2021-12", xOffset: -80, yOffset: 0 }
+        ];
 
-    // 0 % osa
-    if (showZeroLine) {
-        svgGroup.append("line")
-            .attr("class", "zero-line")
-            .attr("x1", 0)
-            .attr("y1", y(0))
-            .attr("x2", width)
-            .attr("y2", y(0));
-        svgGroup.append("text")
-            .attr("class", "label")
-            .attr("x", -margin.left + 5)
-            .attr("y", y(0) - 5)
-            .attr("text-anchor", "start")
-            .style("fill", "#555")
-            .style("font-weight", "bold")
-            .style("font-size", window.innerWidth < 500 ? "10px" : "12px")
-            .text("0 %");
-    }
+        const babisLabelsNezamestnanost = [
+            { date: "2017-12", xOffset: 0, yOffset: 0 },
+            { date: "2021-11", xOffset: -40, yOffset: 35 } // Příklad individuálního posunu dolů
+        ];
+        
+        const babisLabelsDluhHDP = [
+            { date: "2017-12", xOffset: 0, yOffset: 50 },
+            { date: "2021-12", xOffset: -90, yOffset: 5 }
+        ];
 
-    // Pozadí vlád
-    svgGroup.append("rect")
-        .attr("x", x(parseDate(startBabisDate)))
-        .attr("width", x(parseDate(endBabisDate)) - x(parseDate(startBabisDate)))
-        .attr("height", height)
-        .attr("fill", "#e53935")
-        .attr("opacity", 0.05);
+        const babisLabelsSchodek = [
+            { date: "2017-12", xOffset: 0, yOffset: 30 },
+            { date: "2021-12", xOffset: -60, yOffset: 0 }
+        ];
 
-    const yellowOverlay = svgGroup.append("rect")
-        .attr("id", `completion-highlight-${svgId}`) // Unikátní ID
-        .attr("y", 0)
-        .attr("height", height)
-        .attr("fill", "#fff59d")
-        .attr("opacity", 0.6)
-        .style("display", "none");
+        const babisLabelsObranaHDP = [
+            { date: "2017-12", xOffset: 0, yOffset: 0 },
+            { date: "2021-12", xOffset: -60, yOffset: 45 }
+        ];
 
-    svgGroup.append("rect")
-        .attr("x", x(parseDate(startFialaDate)))
-        .attr("width", x(parseDate(endFialaDate)) - x(parseDate(startFialaDate)))
-        .attr("height", height)
-        .attr("fill", "#1e88e5")
-        .attr("opacity", 0.05);
+        const babisLabelsInvesticeHDP = [
+            { date: "2017-12", xOffset: 0, yOffset: 30 },
+            { date: "2021-12", xOffset: -50, yOffset: 35 }
+        ];
 
-    // Nadpisy vlád
-    const babisMidX = x(new Date((parseDate(startBabisDate).getTime() + parseDate(endBabisDate).getTime()) / 2));
-    const fialaMidX = x(new Date((parseDate(startFialaDate).getTime() + parseDate(endFialaDate).getTime()) / 2));
+        const babisLabelsDalniceKM = [
+            { date: "2017-12", xOffset: 15, yOffset: 20},
+            { date: "2021-12", xOffset: -60, yOffset: 5 }
+        ];
 
-    const titleY = -margin.top / 2 + (window.innerWidth < 500 ? 15 : 20);
+        const babisLabelsKriminalita = [
+            { date: "2017-12", xOffset: 20, yOffset: 5 },
+            { date: "2021-12", xOffset: -50, yOffset: 0 }
+        ];
 
-    svgGroup.append("text")
-        .attr("x", babisMidX)
-        .attr("y", titleY)
-        .text("BABIŠOVA VLÁDA")
-        .attr("class", "label")
-        .style("fill", "#282660")
-        .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
-        .style("font-weight", "bold")
-        .style("letter-spacing", "1px")
-        .attr("text-anchor", "middle");
+        const babisLabelsCenaEnergie = [
+            { date: "2017-12", xOffset: 0, yOffset: 0 },
+            { date: "2021-12", xOffset: -60, yOffset: 0 }
+        ];
 
-    svgGroup.append("text")
-        .attr("x", fialaMidX)
-        .attr("y", titleY)
-        .text("FIALOVA VLÁDA")
-        .attr("class", "label")
-        .style("fill", "#1e88e5")
-        .style("font-size", window.innerWidth < 500 ? "14px" : "20px")
-        .style("font-weight", "bold")
-        .style("letter-spacing", "1px")
-        .attr("text-anchor", "middle");
+        const babisLabelsBydleni = [
+            { date: "2017-12", xOffset: 0, yOffset: 0 },
+            { date: "2021-12", xOffset: -75, yOffset: 5 }
+        ];
 
-    // Reálná čára (Babiš)
-    const line = d3.line().x(d => x(d.date)).y(d => y(d[dataField])).curve(d3.curveMonotoneX);
-    svgGroup.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
+        const babisLabelsCizinci = [
+            { date: "2017-12", xOffset: 0, yOffset: 0 },
+            { date: "2021-12", xOffset: -60, yOffset: 0 }
+        ];
 
-    // Označení začátku a konce Babišovy vlády
-    const startBabisDataPoint = dataBabis[0];
-    const endBabisDataPoint = dataBabis[dataBabis.length - 1];
-
-    drawLabelWithDot(
-        x(startBabisDataPoint.date),
-        y(startBabisDataPoint[dataField]),
-        "#000",
-        `${startBabisDataPoint[dataField].toFixed(1)} %`,
-        "start",
-        true,
-        true,
-    );
-
-    drawLabelWithDot(
-        x(endBabisDataPoint.date),
-        y(endBabisDataPoint[dataField]),
-        "#000",
-        `${endBabisDataPoint[dataField].toFixed(1)} %`,
-        "end",
-        true,
-        true,
-    );
-
-    // Průhledná plocha pro kreslení a interakci
-    const drawingArea = svgGroup.append("rect")
-        .attr("class", "drawing-overlay")
-        .attr("x", x(parseDate(startFialaDate)))
-        .attr("y", 0)
-        .attr("width", x(parseDate(endFialaDate)) - x(parseDate(startFialaDate)))
-        .attr("height", height)
-        .attr("fill", "transparent")
-        .style("cursor", "crosshair");
-
-    // --- INTERACTION LOGIC (Mouse & Touch) ---
-    const evaluateButton = document.getElementById(evaluateButtonId);
-    const truthInfoDiv = document.getElementById(truthInfoId);
-
-    function handleInteractionStart(event, element) {
-        if (evaluated) return;
-        if (event.button === 2 || (event.touches && event.touches.length > 1)) return;
-
-        isDrawing = true;
-        hasDrawn = false;
-        userPoints = [];
-        userPath.attr("d", null);
-        svgGroup.selectAll("circle.user-dot").remove();
-        svgGroup.selectAll("text").filter(function () {
-            return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
-        }).remove();
-        usedLabelPositions = [];
-
-        document.body.style.overflow = "hidden";
-
-        const start = x(parseDate(startFialaDate));
-        const end = x(parseDate(endFialaDate));
-        yellowOverlay
-            .style("display", "block")
-            .attr("x", start)
-            .attr("width", end - start);
-
-        evaluateButton.disabled = true;
-    }
-
-    function handleInteractionMove(event, element) {
-        if (!isDrawing || evaluated) return;
-
-        const [px, py] = d3.pointer(event, element);
-        const xDate = x.invert(px);
-        const yVal = y.invert(py);
-
-        // Kontrola rozsahu kreslení
-        if (
-            xDate >= parseDate(startFialaDate) &&
-            xDate <= parseDate(endFialaDate) &&
-            yVal >= y.domain()[0] && // Použít spodní limit Y-domény
-            yVal <= y.domain()[1]    // Použít horní limit Y-domény
+   
+        // Funkce pro vykreslení jednoho "You Draw It" grafu
+        function createYouDrawItChart(
+            svgId,
+            data,
+            dataField,
+            startBabisDataDate, // Start datum pro filtrování dat Babiše (včetně)
+            endBabisDataDate,    // Koncové datum pro filtrování dat Babiše (EXKLUZIVNĚ)
+            startFialaDataDate, // Start datum pro filtrování dat Fialy (včetně)
+            endFialaDataDate,    // Koncové datum pro filtrování dat Fialy (včetně)
+            yDomainMin,
+            yDomainMax,
+            showZeroLine,
+            evaluateButtonId,
+            resetButtonId,
+            truthInfoId,
+            yAxisFormat,
+            politicalTransitionDateBg,
+            drawingAreaStartPoint, // Datum, odkud může uživatel začít kreslit
+            individualBabisLabels // NOVÝ PARAMETR: Pole objektů s individuálními nastaveními popisků
         ) {
-            userPoints.push([xDate, yVal]);
+            // Příprava dat
+            data.forEach(d => d.date = parseDate(d.Datum));
 
-            userPath.attr("d",
-                d3.line()
-                    .x(d => x(d[0]))
-                    .y(d => y(d[1]))
-                    .curve(d3.curveMonotoneX)(userPoints)
-            );
+            // 🔒 Funkce pro zamezení scrollování při kreslení na mobilu
+            function disableScrollOnTouch() {
+                document.body.style.overflow = "hidden";
+                document.addEventListener("touchmove", preventScroll, { passive: false });
+            }
 
-            const lastDate = userPoints.at(-1)[0];
-            const endDate = parseDate(endFialaDate);
-            const lastX = x(lastDate);
-            const endX = x(endDate);
+            function enableScrollOnTouch() {
+                document.body.style.overflow = "auto";
+                document.removeEventListener("touchmove", preventScroll);
+            }
 
-            if (lastX >= endX - 5) {
-                yellowOverlay.style("display", "none");
-                evaluateButton.disabled = false;
+            function preventScroll(e) {
+                e.preventDefault();
+            }
+
+            // Dělení dat pro čáry (používá konkrétní data pro filtry)
+            const dataBabis = data.filter(d => d.date < parseDate(endBabisDataDate));
+            const dataFiala = data.filter(d => d.date >= parseDate(startFialaDataDate));
+
+            // Vyčistíme SVG před opětovným vykreslením
+            d3.select(`#${svgId}`).selectAll("*").remove(); // Opravená syntaxe šablonového literálu
+
+            const svgElement = document.getElementById(svgId);
+            const currentSvgWidth = svgElement.getBoundingClientRect().width;
+
+            let margin;
+            if (window.innerWidth < 500) {
+                margin = { top: 60, right: 55, bottom: 60, left: 15 };
             } else {
+                margin = { top: 60, right: 70, bottom: 60, left: 60 };
+            }
+
+            const width = currentSvgWidth - margin.left - margin.right;
+            let heightRatio = window.innerWidth < 500 ? 1.5 : 0.75;
+            const height = (currentSvgWidth * heightRatio) - margin.top - margin.bottom;
+
+            d3.select(`#${svgId}`) // Opravená syntaxe šablonového literálu
+                .attr("viewBox", `0 0 ${currentSvgWidth} ${currentSvgWidth * heightRatio}`) // Opravená syntaxe
+                .attr("preserveAspectRatio", "xMinYMin meet");
+
+            const svgGroup = d3.select(`#${svgId}`) // Opravená syntaxe šablonového literálu
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`); // Opravená syntaxe
+
+            const minOverallDate = d3.min(data, d => d.date);
+            const maxOverallDate = d3.max(data, d => d.date);
+            const x = d3.scaleTime().domain([d3.timeMonth.offset(minOverallDate, -2), d3.timeMonth.offset(maxOverallDate, 2)]).range([0, width]);
+
+            const actualMinY = d3.min(data, d => d[dataField]);
+            const actualMaxY = d3.max(data, d => d[dataField]);
+
+            const y = d3.scaleLinear()
+                .domain([
+                    yDomainMin !== null ? yDomainMin : (actualMinY - (actualMinY > 0 ? actualMinY * 0.1 : 2)),
+                    yDomainMax !== null ? yDomainMax : (actualMaxY + (actualMaxY > 0 ? actualMaxY * 0.1 : 2))
+                ])
+                .range([height, 0]);
+
+            let isDrawing = false, hasDrawn = false, evaluated = false;
+            // Pole pro sledování Y-pozic textových popisků, aby se zabránilo jejich překrývání
+            let usedLabelPositions = []; 
+            let userPoints = [];
+            let userPath = svgGroup.append("path").attr("class", "user-line");
+            let fialaLine;
+
+
+            // Funkce pro vykreslení tečky a textu popisku
+            function drawLabelAndDot(
+                xPos, // X pozice pro tečku i referenci pro text
+                yPos, // Y pozice pro tečku i referenci pro text (tato je VŽDY datová!)
+                dotColor, // Barva tečky
+                labelColor, // Barva textu
+                text, // Text popisku
+                align = "start", // Zarovnání textu
+                bold = false, // Tučný text
+                isUser = false, // Je to uživatelský prvek (pro reset)
+                dotClass = "", // Třída pro tečku
+                labelClass = "", // Třída pro text
+                xOffset = 0, // Individuální horizontální posun pro text
+                yOffset = 0 // Individuální vertikální posun pro text
+            ) {
+                const labelHeight = window.innerWidth < 500 ? 14 : 18;
+                const textYPadding = window.innerWidth < 500 ? 8 : 10; // Vertikální mezera pro text (od adjustedTextY)
+                const collisionBuffer = window.innerWidth < 500 ? 15 : 20; // Mezera od čáry a jiných popisků
+
+                let adjustedTextY = yPos + yOffset; // Zde se aplikuje individuální yOffset
+
+                // Najdeme nejbližší bod na lince k X pozici popisku
+                // (Používáme dataBabis pro výpočet překrytí Babišových popisků s Babišovou čarou)
+                const lineData = dataBabis; 
+                let closestLineY = yPos; // výchozí hodnota
+
+                if (lineData && lineData.length > 1) {
+                    const bisectDate = d3.bisector(d => d.date).left;
+                    const i = bisectDate(lineData, x.invert(xPos), 1);
+                    const d0 = lineData[i - 1];
+                    const d1 = lineData[i];
+                    
+                    if (d0 && d1) {
+                        const interpolateLineY = d3.interpolate(d0[dataField], d1[dataField]);
+                        closestLineY = y(interpolateLineY( (x.invert(xPos) - d0.date) / (d1.date - d0.date) ));
+                    } else if (d0) {
+                        closestLineY = y(d0[dataField]);
+                    } else if (d1) {
+                        closestLineY = y(d1[dataField]);
+                    }
+                }
+
+                // --- Logika pro automatické posouvání textu kvůli kolizím ---
+
+                // Ochrana proti kolizi s osou 0
+                if (showZeroLine && Math.abs(adjustedTextY - y(0)) < (labelHeight + 5)) {
+                    adjustedTextY = y(0) - (labelHeight + 5); // Posun nad čáru 0
+                }
+
+                // Ochrana proti příliš vysokému nebo nízkému umístění (okraje grafu)
+                if (adjustedTextY < labelHeight + 5) {
+                    adjustedTextY = labelHeight + 5; // Posun dolů od okraje
+                } else if (adjustedTextY > height - (labelHeight + 5)) {
+                    adjustedTextY = height - (labelHeight + 5); // Posun nahoru od okraje
+                }
+
+                // Kontrola překryvu textu s datovou linkou
+                if (Math.abs(adjustedTextY - closestLineY) < collisionBuffer) {
+                    if (adjustedTextY > closestLineY) { // Text je pod čárou
+                        adjustedTextY = closestLineY + collisionBuffer;
+                    } else { // Text je nad čárou
+                        adjustedTextY = closestLineY - collisionBuffer;
+                    }
+                }
+
+                // Ochrana proti kolizi textu s jinými texty popisků
+                // Důležité: Tuto logiku by bylo ideální optimalizovat pro větší počet popisků
+                // Nyní je to jednoduchá iterace, která nemusí najít vždy optimální místo.
+                for (let i = 0; i < usedLabelPositions.length; i++) {
+                    // Kontrolujeme překryv v Y-ose
+                    if (Math.abs(usedLabelPositions[i] - adjustedTextY) < labelHeight) {
+                        // Posuneme text pryč od kolidujícího popisku
+                        adjustedTextY += (adjustedTextY > usedLabelPositions[i] ? 1 : -1) * (labelHeight + 2);
+                    }
+                }
+                usedLabelPositions.push(adjustedTextY); // Uložíme finální Y pozici textu
+
+
+                // 🔴 Tečka (VŽDY na přesné datové pozici yPos, ne adjustedTextY!)
+                const circle = svgGroup.append("circle")
+                    .attr("cx", xPos)
+                    .attr("cy", yPos) // <--- KLÍČOVÁ ZMĚNA: Používá se původní yPos!
+                    .attr("r", window.innerWidth < 500 ? 4 : 5)
+                    .attr("fill", dotColor);
+                if (dotClass) circle.classed(dotClass, true);
+                if (isUser) circle.classed("user-dot", true);
+
+                // 🏷 Popisek (posunutý podle adjustedTextY)
+                const label = svgGroup.append("text")
+                    .attr("x", xPos + (align === "start" ? 8 : align === "middle" ? 0 : -8) + xOffset)
+                    .attr("y", adjustedTextY - textYPadding) // Používá adjustedTextY pro text
+                    .attr("text-anchor", align)
+                    .style("fill", labelColor)
+                    .style("font-weight", bold ? "bold" : "normal")
+                    .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
+                    .text(text);
+                if (labelClass) label.classed(labelClass, true);
+            }
+
+
+            // Osy
+            svgGroup.append("g")
+                .attr("transform", `translate(0,${height})`) // Opravená syntaxe
+                .call(d3.axisBottom(x)
+                    .tickFormat(d3.timeFormat("%Y")) // Vždy jen rok
+                    .ticks(d3.timeYear.every(1)) // Vždy roční ticky
+                )
+                .selectAll("text")
+                .style("text-anchor", "middle")
+                .style("font-size", window.innerWidth < 500 ? "10px" : "14px")
+                .attr("dy", "1em");
+
+            // Formátování Y-osy na základě nového parametrování
+            svgGroup.append("g")
+                .attr("class", "y-grid")
+                .call(
+                    d3.axisLeft(y)
+                        .tickSize(-width)
+                        .tickFormat("")
+                )
+                .selectAll("line")
+                .attr("stroke", "#ddd")
+                .attr("stroke-dasharray", "2,2");
+            svgGroup.selectAll(".y-grid path").remove();
+
+            // 0 % osa
+            if (showZeroLine) {
+                svgGroup.append("line")
+                    .attr("class", "zero-line")
+                    .attr("x1", 0)
+                    .attr("y1", y(0))
+                    .attr("x2", width)
+                    .attr("y2", y(0));
+                // Popisek pro 0 % osu je fixní, takže nepotřebuje složitou logiku posunu
+                svgGroup.append("text")
+                    .attr("class", "label")
+                    .attr("x", -margin.left + 5)
+                    .attr("y", y(0) - 5)
+                    .attr("text-anchor", "start")
+                    .style("fill", "#555")
+                    .style("font-weight", "bold")
+                    .style("font-size", window.innerWidth < 500 ? "10px" : "12px")
+                    .text(yAxisFormat(0));
+            }
+
+            // Pozadí vlád (používá specifický politicalTransitionDateBg)
+            svgGroup.append("rect")
+                .attr("x", x(parseDate(startBabisDataDate))) // Start Babiš background od prvního data
+                .attr("width", x(parseDate(politicalTransitionDateBg)) - x(parseDate(startBabisDataDate)))
+                .attr("height", height)
+                .attr("fill", "#e53935")
+                .attr("opacity", 0.05);
+
+            const yellowOverlay = svgGroup.append("rect")
+                .attr("id", `completion-highlight-${svgId}`) // Opravená syntaxe
+                .attr("y", 0)
+                .attr("height", height)
+                .attr("fill", "#fff59d")
+                .attr("opacity", 0.6)
+                .style("display", "none");
+
+                        // Tooltip při kreslení – hodnota pod kurzorem (přesunuto dovnitř funkce)
+            const drawTooltipGroup = svgGroup.append("g").style("display", "none");
+
+            const drawTooltipCircle = drawTooltipGroup.append("circle")
+                .attr("r", window.innerWidth < 500 ? 4 : 6)
+                .attr("fill", "#1e88e5");
+
+            const drawTooltipText = drawTooltipGroup.append("text")
+                .attr("text-anchor", "start")
+                .attr("dy", "-0.8em")
+                .style("fill", "#1e88e5")
+                .style("font-weight", "bold")
+                .style("font-size", window.innerWidth < 500 ? "12px" : "14px");
+
+            svgGroup.append("rect")
+                .attr("x", x(parseDate(politicalTransitionDateBg))) // Start Fiala background od politického přechodu
+                .attr("width", x(parseDate(endFialaDataDate)) - x(parseDate(politicalTransitionDateBg)))
+                .attr("height", height)
+                .attr("fill", "#1e88e5")
+                .attr("opacity", 0.05);
+
+            // Nadpisy vlád
+            // Nová, mírně upravená definice titleY pro ještě větší volnost
+            const titleY = -margin.top / 2 + (window.innerWidth < 500 ? 10 : 20); // Změna 15 na 10 pro více místa nad grafem
+
+
+            // BABIŠOVA VLÁDA
+            // Vypočítáme babisMidX a fialaMidX PŘEDTÍM, než je použijeme
+            const babisMidX = x(new Date((parseDate(startBabisDataDate).getTime() + parseDate(politicalTransitionDateBg).getTime()) / 2));
+            const fialaMidX = x(new Date((parseDate(politicalTransitionDateBg).getTime() + parseDate(endFialaDataDate).getTime()) / 2));
+
+            svgGroup.append("text")
+                // PODMÍNKA ZDE: Pokud je šířka okna menší než 500px, posuneme X pozici
+                .attr("x", window.innerWidth < 500 ? babisMidX - 3 : babisMidX)
+                .attr("y", titleY)
+                .text("BABIŠOVA VLÁDA")
+                .attr("class", "label")
+                .style("fill", "#282660")
+                // PODMÍNKA ZDE: Zmenšení font-size pro mobil
+                .style("font-size", window.innerWidth < 500 ? "11px" : "20px")
+                .style("font-weight", "bold")
+                // PODMÍNKA ZDE: Zmenšení letter-spacing pro mobil
+                .style("letter-spacing", window.innerWidth < 500 ? "0.5px" : "1px")
+                .attr("text-anchor", "middle");
+
+            // FIALOVA VLÁDA
+            svgGroup.append("text")
+                // PODMÍNKA ZDE: Pokud je šířka okna menší než 500px, posuneme X pozici
+                .attr("x", window.innerWidth < 500 ? fialaMidX + 1 : fialaMidX)
+                .attr("y", titleY)
+                .text("FIALOVA VLÁDA")
+                .attr("class", "label")
+                .style("fill", "#1e88e5")
+                // PODMÍNKA ZDE: Zmenšení font-size pro mobil
+                .style("font-size", window.innerWidth < 500 ? "11px" : "20px")
+                .style("font-weight", "bold")
+                // PODMÍNKA ZDE: Zmenšení letter-spacing pro mobil
+                .style("letter-spacing", window.innerWidth < 500 ? "0.5px" : "1px")
+                .attr("text-anchor", "middle");
+
+            // Reálná čára (Babiš)
+            const line = d3.line().x(d => x(d.date)).y(d => y(d[dataField])).curve(d3.curveMonotoneX);
+            svgGroup.append("path").datum(dataBabis).attr("class", "true-line").attr("d", line);
+
+            // Vykreslení individuálních Babišových popisků
+            individualBabisLabels.forEach(labelDef => {
+                const dataPoint = data.find(d => d.Datum === labelDef.date);
+                if (dataPoint) {
+                    drawLabelAndDot(
+                        x(dataPoint.date),
+                        y(dataPoint[dataField]), // <--- yPos je ZDE vždy datová
+                        "#000", // Barva tečky
+                        "#000", // Barva textu
+                        `${yAxisFormat(dataPoint[dataField])}`, // Opravená syntaxe
+                        labelDef.align || "start",
+                        true, // bold
+                        false,
+                        "babis-label-dot",
+                        "babis-label",
+                        labelDef.xOffset,
+                        labelDef.yOffset
+                    );
+                }
+            });
+
+            // Průhledná plocha pro kreslení a interakci
+            const drawingArea = svgGroup.append("rect")
+                .attr("class", "drawing-overlay")
+                .attr("x", x(parseDate(drawingAreaStartPoint)))
+                .attr("y", 0)
+                .attr("width", x(parseDate(endFialaDataDate)) - x(parseDate(drawingAreaStartPoint)))
+                .attr("height", height)
+                .attr("fill", "transparent")
+                .style("cursor", "crosshair");
+
+            // --- INTERACTION LOGIC (Mouse & Touch) ---
+            const evaluateButton = document.getElementById(evaluateButtonId);
+            const truthInfoDiv = document.getElementById(truthInfoId);
+
+            function handleInteractionStart(event, element) {
+                if (evaluated) return;
+                if (event.button === 2 || (event.touches && event.touches.length > 1)) return;
+
+                isDrawing = true;
+                hasDrawn = false;
+                userPoints = [];
+                userPath.attr("d", null);
+                // Odstranění uživatelských teček a textů (ne Babišových)
+                svgGroup.selectAll("circle.user-dot, circle.fiala-end-dot, circle.user-end-dot").remove();
+                svgGroup.selectAll("text.user-label, text.fiala-end-label, text.user-end-label").remove();
+                usedLabelPositions = []; // Resetování pozic použitých popisků
+
+                disableScrollOnTouch();
+                drawTooltipGroup.style("display", "block");
+                evaluateButton.disabled = true;
+
+                const start = x(parseDate(drawingAreaStartPoint));
+                const end = x(parseDate(endFialaDataDate));
                 yellowOverlay
                     .style("display", "block")
-                    .attr("x", lastX)
-                    .attr("width", endX - lastX);
-                evaluateButton.disabled = true;
+                    .attr("x", start)
+                    .attr("width", end - start);
             }
-        }
-    }
 
-    function handleInteractionEnd() {
-        if (!isDrawing || evaluated) return;
-        isDrawing = false;
-        hasDrawn = true;
+            function handleInteractionMove(event, element) {
+                if (!isDrawing || evaluated) return;
 
-        const lastPoint = userPoints.at(-1);
-        const endDate = parseDate(endFialaDate);
-        const lastX = lastPoint ? x(lastPoint[0]) : -Infinity;
-        const endX = x(endDate);
+                const [px, py] = d3.pointer(event, element);
+                const xDate = x.invert(px);
+                const yVal = y.invert(py);
 
-        if (lastPoint && lastX >= endX - 5) {
-            evaluateButton.disabled = false;
-            yellowOverlay.style("display", "none");
-        } else {
+                if (
+                    xDate >= parseDate(drawingAreaStartPoint) &&
+                    xDate <= parseDate(endFialaDataDate) &&
+                    yVal >= y.domain()[0] &&
+                    yVal <= y.domain()[1]
+                ) {
+                    userPoints.push([xDate, yVal]);
+
+                    userPath.attr("d",
+                        d3.line()
+                            .x(d => x(d[0]))
+                            .y(d => y(d[1]))
+                            .curve(d3.curveMonotoneX)(userPoints)
+                    );
+
+                    // 🔵 Aktualizuj tooltip pozici a hodnotu
+                    drawTooltipCircle
+                        .attr("cx", px)
+                        .attr("cy", py);
+
+                    const isMobile = window.innerWidth < 500;
+                    drawTooltipText
+                        .attr("x", px + 10)
+                        .attr("y", isMobile ? py - 30 : py)
+                        .text(yAxisFormat(yVal));
+
+                    const lastX = x(userPoints.at(-1)[0]);
+                    const endX = x(parseDate(endFialaDataDate));
+
+                    if (lastX >= endX - 5) {
+                        yellowOverlay.style("display", "none");
+                        evaluateButton.disabled = false;
+                    } else {
+                        yellowOverlay
+                            .style("display", "block")
+                            .attr("x", lastX)
+                            .attr("width", endX - lastX);
+                        evaluateButton.disabled = true;
+                    }
+                }
+            }
+
+
+            function handleInteractionEnd() {
+                if (!isDrawing || evaluated) return;
+                isDrawing = false;
+                hasDrawn = true;
+
+                const lastPoint = userPoints.at(-1);
+                const endDate = parseDate(endFialaDataDate);
+                const lastX = lastPoint ? x(lastPoint[0]) : -Infinity;
+                const endX = x(endDate);
+
+                if (lastPoint && lastX >= endX - 5) {
+                    evaluateButton.disabled = false;
+                    yellowOverlay.style("display", "none");
+
+                    // ✅ Zobrazíme tooltip s poslední hodnotou
+                    drawTooltipCircle
+                        .attr("cx", x(lastPoint[0]))
+                        .attr("cy", y(lastPoint[1]));
+                    drawTooltipText
+                        .attr("x", x(lastPoint[0]) + 10)
+                        .attr("y", y(lastPoint[1]))
+                        .text(yAxisFormat(lastPoint[1]));
+                    drawTooltipGroup.style("display", "block");
+                } else {
+                    evaluateButton.disabled = true;
+                    yellowOverlay.style("display", "block");
+                    drawTooltipGroup.style("display", "none"); // ❌ Schováme tooltip, pokud není na konci
+                }
+
+                enableScrollOnTouch();
+            }
+
+
+            drawingArea
+                .on("mousedown", function(event) { handleInteractionStart(event, this); })
+                .on("mouseup", handleInteractionEnd)
+                .on("mousemove", function(event) { handleInteractionMove(event, this); })
+                .on("mouseleave", handleInteractionEnd);
+
+            const drawingAreaNode = drawingArea.node();
+            drawingAreaNode.addEventListener("touchstart", function(event) {
+                event.preventDefault();
+                handleInteractionStart(event.touches[0], this);
+            }, { passive: false });
+            drawingAreaNode.addEventListener("touchmove", function(event) {
+                event.preventDefault();
+                if (isDrawing) { handleInteractionMove(event.touches[0], this); }
+            }, { passive: false });
+            drawingAreaNode.addEventListener("touchend", function(event) {
+                event.preventDefault();
+                handleInteractionEnd();
+            }, { passive: false });
+
+            // Funkce pro vyhodnocení tipu
+            function evaluateTip() {
+                if (evaluated || !hasDrawn) return;
+                evaluated = true;
+                evaluateButton.disabled = true;
+
+                const extendedFialaLine = [dataBabis[dataBabis.length - 1], ...dataFiala];
+
+                fialaLine = svgGroup.append("path")
+                    .datum(extendedFialaLine)
+                    .attr("class", "true-line")
+                    .attr("d", line);
+
+                const totalLength = fialaLine.node().getTotalLength();
+                fialaLine
+                    .attr("stroke-dasharray", `${totalLength} ${totalLength}`) // Opravená syntaxe
+                    .attr("stroke-dashoffset", totalLength)
+                    .transition()
+                    .duration(1500)
+                    .ease(d3.easeCubicInOut)
+                    .attr("stroke-dashoffset", 0);
+
+                truthInfoDiv.style.display = "block";
+
+                const endFialaDataPoint = dataFiala[dataFiala.length - 1];
+                const lastUserPoint = userPoints.at(-1);
+
+                // Zde také použijeme drawLabelAndDot pro popisky výsledků, aby se řešilo překrytí
+                // a tečky zůstaly na koncových bodech.
+                drawLabelAndDot(
+                    x(endFialaDataPoint.date),
+                    y(endFialaDataPoint[dataField]),
+                    "#000", // Barva tečky pro Fialovu vládu (černá)
+                    "#000", // Barva textu
+                    `${yAxisFormat(endFialaDataPoint[dataField])}`, // Opravená syntaxe
+                    "start",
+                    true,
+                    false, // Není to uživatelská tečka pro reset
+                    "fiala-end-dot", // Nová třída pro tečku (pokud chcete)
+                    "fiala-end-label", // Nová třída pro text
+                    0, // xOffset
+                    0  // yOffset
+                );
+
+            }
+
+            // Funkce pro resetování kreslení
+            function resetDrawing() {
+                isDrawing = false;
+                hasDrawn = false;
+                evaluated = false;
+                userPoints = [];
+                userPath.attr("d", null);
+                if (fialaLine) fialaLine.remove();
+
+                // ✅ Sem přidej řádek
+                drawTooltipGroup.style("display", "none");
+
+                // Odstranění uživatelských teček a textů a Fialových koncových popisků
+                svgGroup.selectAll("circle.user-dot, circle.fiala-end-dot, circle.user-end-dot").remove();
+                svgGroup.selectAll("text.user-label, text.fiala-end-label, text.user-end-label").remove();
+
+                usedLabelPositions = []; // Resetování pozic použitých popisků
+                truthInfoDiv.style.display = "none";
+                evaluateButton.disabled = true;
+                yellowOverlay.style("display", "none");
+                enableScrollOnTouch();
+            }
+
+            // Připojení event listenerů k tlačítkům
+            document.getElementById(resetButtonId).addEventListener('click', resetDrawing);
+            document.getElementById(evaluateButtonId).addEventListener('click', evaluateTip);
+
+            // Počáteční stav tlačítka
             evaluateButton.disabled = true;
-            yellowOverlay.style("display", "block");
         }
-        document.body.style.overflow = "auto";
-    }
 
-    drawingArea
-        .on("mousedown", function(event) { handleInteractionStart(event, this); })
-        .on("mouseup", handleInteractionEnd)
-        .on("mousemove", function(event) { handleInteractionMove(event, this); })
-        .on("mouseleave", handleInteractionEnd);
-
-    const drawingAreaNode = drawingArea.node();
-    drawingAreaNode.addEventListener("touchstart", function(event) {
-        event.preventDefault();
-        handleInteractionStart(event.touches[0], this);
-    }, { passive: false });
-    drawingAreaNode.addEventListener("touchmove", function(event) {
-        event.preventDefault();
-        if (isDrawing) { handleInteractionMove(event.touches[0], this); }
-    }, { passive: false });
-    drawingAreaNode.addEventListener("touchend", function(event) {
-        event.preventDefault();
-        handleInteractionEnd();
-    }, { passive: false });
-
-    // Funkce pro vyhodnocení tipu
-    function evaluateTip() {
-        if (evaluated || !hasDrawn) return;
-        evaluated = true;
-        evaluateButton.disabled = true;
-
-        fialaLine = svgGroup.append("path")
-            .datum(dataFiala)
-            .attr("class", "true-line")
-            .attr("d", line);
-
-        const totalLength = fialaLine.node().getTotalLength();
-        fialaLine
-            .attr("stroke-dasharray", `${totalLength} ${totalLength}`)
-            .attr("stroke-dashoffset", totalLength)
-            .transition()
-            .duration(1500)
-            .ease(d3.easeCubicInOut)
-            .attr("stroke-dashoffset", 0);
-
-        truthInfoDiv.style.display = "block";
-
-        const endFialaDataPoint = dataFiala[dataFiala.length - 1];
-        const lastUserPoint = userPoints.at(-1);
-
-        const fialaY = y(endFialaDataPoint[dataField]);
-        const userY = y(lastUserPoint[1]);
-        const fialaX = x(endFialaDataPoint.date);
-        const userX = x(lastUserPoint[0]);
-
-        const minYGap = window.innerWidth < 500 ? 12 : 16;
-        const closeY = Math.abs(fialaY - userY) < minYGap;
-
-        const fialaTextYOffset = closeY ? -minYGap / 2 : 0;
-        const userTextYOffset = closeY ? minYGap / 2 : 0;
-
-        const fialaTextXOffset = window.innerWidth < 500 ? 10 : 14;
-        const userTextXOffset = closeY ? (window.innerWidth < 500 ? 12 : 15) : (window.innerWidth < 500 ? 20 : 25);
-
-        svgGroup.append("circle")
-            .attr("cx", fialaX)
-            .attr("cy", fialaY)
-            .attr("r", window.innerWidth < 500 ? 4 : 5)
-            .attr("fill", "#000")
-            .classed("fiala-end-label", true);
-
-        svgGroup.append("circle")
-            .attr("cx", userX)
-            .attr("cy", userY)
-            .attr("r", window.innerWidth < 500 ? 4 : 5)
-            .attr("fill", "#1e88e5")
-            .classed("user-dot", true);
-
-        svgGroup.append("text")
-            .attr("x", fialaX + fialaTextXOffset)
-            .attr("y", fialaY + fialaTextYOffset - (window.innerWidth < 500 ? 8 : 10))
-            .attr("text-anchor", "start")
-            .style("fill", "#000")
-            .style("font-weight", "bold")
-            .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
-            .text(`${endFialaDataPoint[dataField].toFixed(1)} %`)
-            .classed("fiala-end-label", true);
-
-        svgGroup.append("text")
-            .attr("x", userX + userTextXOffset)
-            .attr("y", userY + userTextYOffset - (window.innerWidth < 500 ? 8 : 10))
-            .attr("text-anchor", "start")
-            .style("fill", "#1e88e5")
-            .style("font-weight", "bold")
-            .style("font-size", window.innerWidth < 500 ? "12px" : "14px")
-            .text(`${lastUserPoint[1].toFixed(1)} %`)
-            .classed("user-dot", true);
-    }
-
-    // Funkce pro resetování kreslení
-    function resetDrawing() {
-        isDrawing = false;
-        hasDrawn = false;
-        evaluated = false;
-        userPoints = [];
-        userPath.attr("d", null);
-        if (fialaLine) fialaLine.remove();
-
-        svgGroup.selectAll("circle.user-dot").remove();
-        svgGroup.selectAll("text").filter(function() {
-            return d3.select(this).text().includes('%') && d3.select(this).style("fill") === "rgb(30, 136, 229)";
-        }).remove();
-
-        usedLabelPositions = [];
-        truthInfoDiv.style.display = "none";
-        evaluateButton.disabled = true;
-        svgGroup.selectAll(".fiala-end-label").remove();
-        yellowOverlay.style("display", "none");
-        document.body.style.overflow = "auto";
-    }
-
-    // Připojení event listenerů k tlačítkům
-    document.getElementById(resetButtonId).onclick = resetDrawing;
-    document.getElementById(evaluateButtonId).onclick = evaluateTip;
-
-    // Počáteční stav tlačítka
-    evaluateButton.disabled = true;
-}
-
-// Inicializace obou grafů
-function initializeCharts() {
-  // Inflace graf
-  createYouDrawItChart(
-    "chart-inflace",
-    dataInflace,
-    "Hodnota", // Data field pro inflaci
-    "2017-12", // Start Babis inflace
-    "2021-12", // End Babis inflace
-    "2021-12", // Start Fiala inflace
-    "2025-05", // End Fiala inflace
-    0, // Min Y domain pro inflaci (explicitně 0)
-    25, // Max Y domain pro inflaci (explicitně 25)
-    false, // Nezobrazovat 0% čáru pro inflaci
-    "evaluate-inflace",
-    "reset-inflace",
-    "truth-inflace"
-  );
-
-  // Reálná mzda graf
-  createYouDrawItChart(
-    "chart-mzda",
-    dataMzda,
-    "Hodnota", // Data field pro reálnou mzdu
-    "2017-12", // Start Babis mzda
-    "2022-03", // End Babis mzda (jak jsi požadoval)
-    "2021-12", // Start Fiala mzda (jak jsi požadoval)
-    "2025-03", // End Fiala mzda
-    null, // Min Y domain pro mzdy (necháme dynamicky vypočítat, ale s ohledem na 0)
-    null, // Max Y domain pro mzdy (necháme dynamicky vypočítat, ale s ohledem na 0)
-    true, // Zobrazit 0% čáru pro reálnou mzdu
-    "evaluate-mzda",
-    "reset-mzda",
-    "truth-mzda"
-  );
-}
+        // Funkce pro inicializaci všech grafů
+        function initializeCharts() {
+            // Definice formátování osy Y
+            const formatPercent = d => `${d.toFixed(1).replace('.', ',')} %`;
+            const formatCurrency = d => `${Math.round(d).toLocaleString('cs-CZ')} Kč`;
+            const formatDluhHDP = d => `${d.toFixed(2).replace('.', ',')} %`;
+            const formatMldKc = d => `${Math.round(d).toLocaleString('cs-CZ')} mld.`;
+            const formatKm = d => `${Math.round(d).toLocaleString('cs-CZ')} km`;
+            const formatNumber = d => `${Math.round(d).toLocaleString('cs-CZ')}`;
+            const formatCenaMWh = d => `${Math.round(d).toLocaleString('cs-CZ')} Kč`;
 
 
-// Vykreslit grafy při načtení stránky
-initializeCharts();
+            // Inflace graf (měsíční data)
+            createYouDrawItChart(
+                "youdrawit-chart-inflace", dataInflace, "Hodnota", "2017-12", "2021-12", "2021-12", "2025-05",
+                0, 20, false, "youdrawit-evaluate-inflace", "youdrawit-reset-inflace", "youdrawit-truth-inflace",
+                formatPercent, "2021-12", // politicalTransitionDateBg
+                "2021-10", // drawingAreaStartPoint - začátek kreslení od prosince 2021
+                babisLabelsInflace // <--- Předání individuálních popisků
+            );
 
-// Přidat listener pro změnu velikosti okna pro responzivitu
-let resizeTimer;
-window.addEventListener("resize", () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(initializeCharts, 250); // Zavolat inicializaci pro oba grafy
-});
+            createYouDrawItChart(
+                "youdrawit-chart-mzda", dataMzda, "Hodnota", "2017-12", "2022-03", "2021-12", "2025-03",
+                -10, 10, true, "youdrawit-evaluate-mzda", "youdrawit-reset-mzda", "youdrawit-truth-mzda",
+                formatPercent, "2021-12",
+                "2021-11",
+                babisLabelsMzda // <--- Předání individuálních popisků
+            );
 
+            // HDP graf (měsíční data)
+            createYouDrawItChart(
+                "youdrawit-chart-hdp", dataHDP, "Hodnota", "2017-12", "2022-03", "2021-12", "2025-03",
+                null, null, true, "youdrawit-evaluate-hdp", "youdrawit-reset-hdp", "youdrawit-truth-hdp",
+                formatPercent, "2021-12", // politicalTransitionDateBg
+                "2021-11", // drawingAreaStartPoint
+                babisLabelsHDP // <--- Předání individuálních popisků
+            );
+
+            // Důchody graf (měsíční data)
+            createYouDrawItChart(
+                "youdrawit-chart-duchody", dataDuchody, "Hodnota", "2017-12", "2022-03", "2021-12", "2025-03",
+                10000, null, false, "youdrawit-evaluate-duchody", "youdrawit-reset-duchody", "youdrawit-truth-duchody",
+                formatCurrency, "2021-12", // politicalTransitionDateBg
+                "2021-11", // drawingAreaStartPoint
+                babisLabelsDuchody // <--- Předání individuálních popisků
+            );
+
+            createYouDrawItChart(
+                "youdrawit-chart-nezamestnanost", dataNezamestnanost, "Hodnota", 
+                "2017-12", "2021-12", "2021-12", "2025-05",
+                2, null, true, // 👈 osa Y začne od 2 %
+                "youdrawit-evaluate-nezamestnanost", "youdrawit-reset-nezamestnanost", "youdrawit-truth-nezamestnanost",
+                formatPercent, "2021-12",
+                "2021-10",
+                babisLabelsNezamestnanost // <--- Předání individuálních popisků
+            );
+
+            // Dluh HDP graf (roční data)
+            createYouDrawItChart(
+                "youdrawit-chart-dluh-hdp", dataDluhHDP, "Hodnota", "2017-12", "2022-12", "2022-12", "2024-06",
+                25, null, false, "youdrawit-evaluate-dluh-hdp", "youdrawit-reset-dluh-hdp", "youdrawit-truth-dluh-hdp",
+                formatDluhHDP, "2022-01", // politicalTransitionDateBg
+                "2021-11", // NOVÝ PARAMETR: drawingAreaStartPoint - kreslení začíná od ledna 2022
+                babisLabelsDluhHDP // <--- Předání individuálních popisků
+            );
+
+            createYouDrawItChart(
+                "youdrawit-chart-schodek-rozpoctu",
+                dataSchodek,
+                "Hodnota",
+                "2017-12", "2022-12",
+                "2022-12", "2025-06",
+                -500, 70, false, // ✅ pevný rozsah Y osy od -500 do 0
+                "youdrawit-evaluate-schodek-rozpoctu",
+                "youdrawit-reset-schodek-rozpoctu",
+                "youdrawit-truth-schodek-rozpoctu",
+                formatMldKc,
+                "2022-01", "2021-11",
+                babisLabelsSchodek // <--- Předání individuálních popisků
+            );
+
+            // Výdaje na obranu graf (roční data)
+            createYouDrawItChart(
+                "youdrawit-chart-obrana-hdp", dataObranaHDP, "Hodnota", "2017-12", "2022-12", "2022-12", "2024-06",
+                null, null, false, "youdrawit-evaluate-obrana-hdp", "youdrawit-reset-obrana-hdp", "youdrawit-truth-obrana-hdp",
+                formatPercent, "2022-01", // politicalTransitionDateBg
+                "2021-11", // NOVÝ PARAMETR: drawingAreaStartPoint
+                babisLabelsObranaHDP // <--- Předání individuálních popisků
+            );
+
+            // Veřejné investice graf (roční data)
+            createYouDrawItChart(
+                "youdrawit-chart-investice-hdp", dataInvesticeHDP, "Hodnota", "2017-12", "2022-12", "2022-12", "2024-06",
+                null, null, false, "youdrawit-evaluate-investice-hdp", "youdrawit-reset-investice-hdp", "youdrawit-truth-investice-hdp",
+                formatPercent, "2022-01", // politicalTransitionDateBg
+                "2021-11", // NOVÝ PARAMETR: drawingAreaStartPoint
+                babisLabelsInvesticeHDP // <--- Předání individuálních popisků
+            );
+
+            // Nové kilometry dálnic graf (roční data)
+            createYouDrawItChart(
+                "youdrawit-chart-dalnice-km", dataDalniceKM, "Hodnota", "2017-12", "2022-12", "2022-12", "2025-06",
+                0, null, false, "youdrawit-evaluate-dalnice-km", "youdrawit-reset-dalnice-km", "youdrawit-truth-dalnice-km",
+                formatKm, "2022-01", // politicalTransitionDateBg
+                "2021-11", // NOVÝ PARAMETR: drawingAreaStartPoint
+                babisLabelsDalniceKM // <--- Předání individuálních popisků
+            );
+
+            // Počet trestných činů graf (roční data)
+            createYouDrawItChart(
+                "youdrawit-chart-kriminalita", dataKriminalita, "Hodnota", "2017-12", "2022-12", "2022-12", "2024-06",
+                150000, null, false, "youdrawit-evaluate-kriminalita", "youdrawit-reset-kriminalita", "youdrawit-truth-kriminalita",
+                formatNumber, "2022-01", // politicalTransitionDateBg
+                "2021-11", // NOVÝ PARAMETR: drawingAreaStartPoint
+                babisLabelsKriminalita // <--- Předání individuálních popisků
+            );
+
+            // Cena elektřiny graf (roční data)
+            createYouDrawItChart(
+                "youdrawit-chart-cena-energie", dataCenaEnergie, "Hodnota", "2017-12", "2022-12", "2022-12", "2024-06",
+                null, null, false, "youdrawit-evaluate-cena-energie", "youdrawit-reset-cena-energie", "youdrawit-truth-cena-energie",
+                formatCenaMWh, "2022-01", // politicalTransitionDateBg
+                "2021-11", // NOVÝ PARAMETR: drawingAreaStartPoint
+                babisLabelsCenaEnergie // <--- Předání individuálních popisků
+            );
+
+            // Růst cen bydlení graf (měsíční data)
+            createYouDrawItChart(
+                "youdrawit-chart-bydleni", dataBydleni, "Hodnota", "2017-12", "2022-03", "2021-12", "2024-12",
+                0, 190, false, "youdrawit-evaluate-bydleni", "youdrawit-reset-bydleni", "youdrawit-truth-bydleni",
+                formatPercent, "2021-12", // politicalTransitionDateBg
+                "2021-11", // NOVÝ PARAMETR: drawingAreaStartPoint
+                babisLabelsBydleni // <--- Předání individuálních popisků
+            );
+
+            // Počet cizinců graf (roční data)
+            createYouDrawItChart(
+                "youdrawit-chart-cizinci", dataCizinci, "Hodnota", "2017-12", "2022-12", "2022-12", "2024-06",
+                500000, null, false, "youdrawit-evaluate-cizinci", "youdrawit-reset-cizinci", "youdrawit-truth-cizinci",
+                formatNumber, "2022-01", // politicalTransitionDateBg
+                "2021-11", // NOVÝ PARAMETR: drawingAreaStartPoint
+                babisLabelsCizinci // <--- Předání individuálních popisků
+            );
+        }
+
+        // Spustit inicializaci grafů po načtení DOM
+        document.addEventListener("DOMContentLoaded", initializeCharts);
+
+        // Přidat listener pro změnu velikosti okna pro responzivitu
+        let resizeTimer;
+        window.addEventListener("resize", () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(initializeCharts, 250);
+        });
+
+    })(); // Konec IIFE
 </script>
 
 </body>
