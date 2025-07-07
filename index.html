@@ -1552,6 +1552,18 @@
         });
 
     })(); // Konec IIFE
+
+            function sendHeightToParent() {
+            const height = document.body.scrollHeight;
+            parent.postMessage({ type: 'setHeight', height: height }, '*');
+        }
+
+        // Po načtení stránky
+        window.addEventListener('load', sendHeightToParent);
+
+        // Při změně velikosti obsahu (např. po kliknutí)
+        const observer = new ResizeObserver(sendHeightToParent);
+        observer.observe(document.body);
 </script>
 
 </body>
